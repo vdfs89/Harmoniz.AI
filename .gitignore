@@ -1,5 +1,6 @@
 venv/
 .env
+.ennv
 __pycache__/
 .ipynb_checkpoints/
 data/processed/*
