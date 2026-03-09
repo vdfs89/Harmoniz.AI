@@ -1,38 +1,167 @@
 ﻿![Harmoniz.AI](img/Gemini_Generated_Image_a7l9bqa7l9bqa7l9.png)
 
-# 🍷 Harmoniz.AI — Sommelier Digital com Arquitetura RAG
+# Harmoniz.AI
 
-O **Harmoniz.AI** é uma solução de Inteligência Artificial Generativa desenvolvida para transformar a experiência de recomendação no ecossistema da **Wine.com.br**. Utilizando a arquitetura **RAG (Retrieval-Augmented Generation)**, o sistema garante recomendações precisas e fundamentadas no catálogo real, eliminando "alucinações" comuns em LLMs genéricos.
+Sommelier digital com arquitetura RAG para recomendacao de vinhos com base em catalogo real.
 
-## 🎯 Por que o Harmoniz.AI?
-Analisando o cenário de e-commerce de vinhos, identifiquei dois desafios principais que este projeto endereça:
-1. **Fidelidade aos Dados (Grounding):** A IA só recomenda rótulos que existem no catálogo (como o *370 Léguas DOC Douro*), respeitando preços e características técnicas.
-2. **Busca Semântica:** Permite que o usuário encontre vinhos por "sentimento" ou "ocasião" (ex: "vinho fresco para um dia de calor"), indo além da busca tradicional por palavras-chave.
+## Visao Geral
 
-## 🛠️ Stack Técnica
-- **Linguagem:** Python 3.10+
-- **Orquestração de IA:** LangChain
-- **Banco de Dados Vetorial:** ChromaDB (Persistente)
-- **Embeddings:** OpenAI `text-embedding-3-small`
-- **LLM:** GPT-4 Turbo / GPT-3.5
-- **Data Stack:** Pandas para processamento de CSV
+O `Harmoniz.AI` foi projetado para responder perguntas sobre vinhos com maior precisao e menor risco de alucinacao, combinando:
 
-## 📂 Estrutura do Projeto
-- `data/raw`: Armazenamento do catálogo técnico de vinhos.
-- `src/engine/ingest.py`: Pipeline de ETL e geração de embeddings.
-- `src/engine/harmoniz_ai.py`: Motor de inferência e interface de conversação.
-- `src/engine/multi_llm_judge.py`: Orquestração multi-modelo (GPT, Groq, Gemini) com juiz.
+- Recuperacao semantica de vinhos em base vetorial (RAG).
+- Resposta conversacional orientada por contexto.
+- Orquestracao multi-modelo (`GPT`, `Groq`, `Gemini`) com um juiz para selecionar a melhor resposta final.
 
-## 🚀 Como Executar
-1. Clone o repositório: `git clone https://github.com/vdfs89/Harmoniz.AI.git`
-2. Instale as dependências: `pip install -r requirements.txt`
-3. Configure suas chaves no arquivo `.env` (`OPENAI_API_KEY`, opcionalmente `GROQ_API_KEY` e `GEMINI_API_KEY`).
-4. Processe os dados: `python src/engine/ingest.py`
-5. Inicie o Sommelier: `python src/engine/harmoniz_ai.py`
-6. (Opcional) Rode o modo com juiz: `python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"`
+Em vez de responder apenas com conhecimento generico, o sistema busca rotulos e descricoes no proprio dataset e usa esse contexto para fundamentar a recomendacao.
 
-## 👨‍💻 Sobre o Autor
-Estudante do último ano de **Ciência da Computação** e **Embaixador da DIO**. Unindo **13 anos de experiência em logística** (Correios) com a paixão por desenvolver soluções de IA que geram valor real para o negócio e para o cliente final.
+## Principais Recursos
 
----
-*Projeto desenvolvido para demonstração técnica de integração de LLMs e Engenharia de Dados.*
+- Ingestao de dados em `CSV`, `XLSX` e `XLS`.
+- Conversao do catalogo em documentos semanticos com metadados (`nome`, `tipo`, `pais`, `preco`).
+- Armazenamento vetorial persistente com `ChromaDB`.
+- Chat RAG com persona de sommelier.
+- Modo de avaliacao com multiplos modelos e juiz.
+- Fallback resiliente quando algum provedor falha.
+
+## Arquitetura
+
+1. O arquivo de vinhos e carregado (`data/raw/...`).
+2. Cada vinho vira um `Document` com perfil sensorial e harmonizacao.
+3. Os documentos sao embedados (`text-embedding-3-small`) e persistidos no `Chroma`.
+4. Em tempo de pergunta:
+	 - `harmoniz_ai.py` usa retriever + prompt especialista para responder.
+	 - `multi_llm_judge.py` recupera contexto RAG, consulta os modelos e pede ao juiz a melhor resposta.
+
+## Estrutura do Projeto
+
+```text
+.
+|-- Docs/
+|-- data/
+|   |-- raw/
+|   |-- processed/
+|-- img/
+|-- src/
+|   |-- engine/
+|   |   |-- ingest.py
+|   |   |-- harmoniz_ai.py
+|   |   |-- multi_llm_judge.py
+|-- requirements.txt
+|-- setup_project.py
+|-- README.md
+```
+
+## Stack Tecnica
+
+- Python 3.10+
+- LangChain
+- ChromaDB
+- OpenAI Embeddings (`text-embedding-3-small`)
+- OpenAI / Groq / Gemini
+- Pandas + OpenPyXL
+
+## Configuracao do Ambiente
+
+### 1) Criar ambiente virtual
+
+Windows (PowerShell):
+
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+Linux/macOS:
+
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+### 2) Instalar dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3) Configurar `.env`
+
+Crie ou ajuste o arquivo `.env` com as variaveis abaixo:
+
+```env
+# Chaves
+OPENAI_API_KEY=...
+GROQ_API_KEY=...
+GEMINI_API_KEY=...
+
+# Modelos
+OPENAI_MODEL=gpt-4o-mini
+GROQ_MODEL=llama-3.1-70b-versatile
+GEMINI_MODEL=gemini-1.5-flash
+JUDGE_PROVIDER=openai
+JUDGE_MODEL=gpt-4o-mini
+
+# Dados e RAG
+WINE_DATA_PATH=data/raw/wines_from_winecombr.xlsx
+VECTOR_DB_PATH=data/processed/chroma_db
+RAG_TOP_K=6
+```
+
+Observacao:
+- `WINE_CSV_PATH` ainda pode ser usado como retrocompatibilidade no `ingest.py`.
+
+## Como Executar
+
+### 1) Ingerir e indexar os vinhos
+
+```bash
+python src/engine/ingest.py
+```
+
+### 2) Rodar o chat RAG do sommelier
+
+```bash
+python src/engine/harmoniz_ai.py
+```
+
+### 3) Rodar o modo multi-modelo com juiz
+
+```bash
+python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
+```
+
+## Scripts Principais
+
+- `src/engine/ingest.py`
+	- Le tabela de vinhos (`csv/xlsx/xls`).
+	- Monta contexto rico por vinho.
+	- Gera embeddings e persiste no Chroma.
+
+- `src/engine/harmoniz_ai.py`
+	- Carrega base vetorial.
+	- Executa `RetrievalQA` com prompt de sommelier.
+	- Disponibiliza chat interativo no terminal.
+
+- `src/engine/multi_llm_judge.py`
+	- Recupera contexto via RAG.
+	- Consulta GPT, Groq e Gemini (quando configurados).
+	- Escolhe resposta final com juiz (`openai`, `groq` ou `gemini`).
+	- Aplica fallback se algum modelo/juiz falhar.
+
+## Troubleshooting Rapido
+
+- Erro de autenticacao: valide as chaves no `.env`.
+- Modelo invalido/deprecado: ajuste `OPENAI_MODEL`, `GROQ_MODEL` ou `GEMINI_MODEL`.
+- Sem contexto RAG: confira `VECTOR_DB_PATH` e execute novamente `ingest.py`.
+- Erro de leitura de planilha: valide colunas obrigatorias no dataset (`Nome`, `Harmonização`, etc.).
+
+## Roadmap
+
+- Filtros por faixa de preco/tipo/pais no retriever.
+- API REST para integracao com front-end.
+- Avaliacao automatica de qualidade das respostas.
+- Observabilidade e telemetria de prompts.
+
+## Autor
+
+Projeto desenvolvido por `vdfs89` como demonstracao tecnica de IA generativa aplicada a recomendacao de vinhos com dados reais.
