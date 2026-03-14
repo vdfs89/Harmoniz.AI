@@ -19,7 +19,11 @@ Em vez de responder apenas com conhecimento generico, o sistema busca rotulos e 
 - Ingestao de dados em `CSV`, `XLSX` e `XLS`.
 - Conversao do catalogo em documentos semanticos com metadados (`nome`, `tipo`, `pais`, `preco`).
 - Armazenamento vetorial persistente com `ChromaDB`.
-- Chat RAG com persona de sommelier.
+- Chat RAG com persona de sommelier usando `ChatPromptTemplate`.
+- Recuperacao com `k=4` para aumentar comparacao entre rotulos na resposta.
+- Pre-filtragem por metadado numerico de preco (ex.: perguntas com "ate 100").
+- Exibicao de `source_documents` no terminal para transparencia do RAG.
+- Inicializacao e loop de atendimento com tratamento de excecoes.
 - Modo de avaliacao com multiplos modelos e juiz.
 - Fallback resiliente quando algum provedor falha.
 
@@ -29,7 +33,8 @@ Em vez de responder apenas com conhecimento generico, o sistema busca rotulos e 
 2. Cada vinho vira um `Document` com perfil sensorial e harmonizacao.
 3. Os documentos sao embedados (`text-embedding-3-small`) e persistidos no `Chroma`.
 4. Em tempo de pergunta:
-	 - `harmoniz_ai.py` usa retriever + prompt especialista para responder.
+	 - `harmoniz_ai.py` usa retriever com `k=4`, aplica filtro por preco quando detecta "ate X" e responde com prompt especialista.
+	 - `harmoniz_ai.py` tambem lista os rotulos analisados com nome e preco (`source_documents`).
 	 - `multi_llm_judge.py` recupera contexto RAG, consulta os modelos e pede ao juiz a melhor resposta.
 
 ## Estrutura do Projeto
@@ -124,6 +129,13 @@ python src/engine/ingest.py
 python src/engine/harmoniz_ai.py
 ```
 
+Exemplos de pergunta no chat:
+
+- `Quero um tinto para carne assada`
+- `Me indica um vinho ate 100 reais para jantar romantico`
+
+Quando houver contexto recuperado, o script imprime os rotulos analisados ao final da resposta.
+
 ### 3) Rodar o modo multi-modelo com juiz
 
 ```bash
@@ -138,9 +150,11 @@ python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
 	- Gera embeddings e persiste no Chroma.
 
 - `src/engine/harmoniz_ai.py`
-	- Carrega base vetorial.
-	- Executa `RetrievalQA` com prompt de sommelier.
-	- Disponibiliza chat interativo no terminal.
+	- Carrega base vetorial com tratamento de falha critica na inicializacao.
+	- Executa `RetrievalQA` com `ChatPromptTemplate`.
+	- Usa recuperacao com `k=4` e aplica filtro por preco em metadado quando detecta "ate X".
+	- Retorna e imprime `source_documents` (nome e preco) para dar visibilidade do grounding.
+	- Disponibiliza chat interativo com tratamento de `KeyboardInterrupt` e erros de API.
 
 - `src/engine/multi_llm_judge.py`
 	- Recupera contexto via RAG.
@@ -154,10 +168,11 @@ python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
 - Modelo invalido/deprecado: ajuste `OPENAI_MODEL`, `GROQ_MODEL` ou `GEMINI_MODEL`.
 - Sem contexto RAG: confira `VECTOR_DB_PATH` e execute novamente `ingest.py`.
 - Erro de leitura de planilha: valide colunas obrigatorias no dataset (`Nome`, `Harmonização`, etc.).
+- Resultado vazio com filtro de preco: tente reformular a pergunta ou aumentar o teto de preco (ex.: "ate 150").
 
 ## Roadmap
 
-- Filtros por faixa de preco/tipo/pais no retriever.
+- Filtros por tipo/pais e combinacao de filtros compostos no retriever.
 - API REST para integracao com front-end.
 - Avaliacao automatica de qualidade das respostas.
 - Observabilidade e telemetria de prompts.
