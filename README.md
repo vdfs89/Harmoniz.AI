@@ -1,4 +1,4 @@
-﻿![Harmoniz.AI](img/Gemini_Generated_Image_a7l9bqa7l9bqa7l9.png)
+﻿![Harmoniz.AI](img/Gemini_Generated_Image_xazn0vxazn0vxazn.png)
 
 # Harmoniz.AI
 
