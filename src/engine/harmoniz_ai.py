@@ -1,12 +1,14 @@
 import os
 import re
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
-from langchain.chains import RetrievalQA
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import Chroma
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 # 1. Configuracoes iniciais
@@ -15,7 +17,7 @@ persist_directory = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
 chat_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
-def _extract_price_cap(question: str) -> float | None:
+def _extract_price_cap(question: str) -> Optional[float]:
     # Captura frases como: "ate 100", "ate R$ 89,90".
     match = re.search(r"\bate\s*(?:r\$\s*)?(\d+[\.,]?\d*)", question.lower())
     if not match:
@@ -25,6 +27,31 @@ def _extract_price_cap(question: str) -> float | None:
         return float(match.group(1).replace(",", "."))
     except ValueError:
         return None
+
+
+def _extract_country_filter(question: str) -> Optional[str]:
+    # Captura filtros por pais: "argentino", "chileno", "italiano", etc
+    countries = {
+        "argentina": "Argentina",
+        "argentino": "Argentina",
+        "chile": "Chile",
+        "chileno": "Chile",
+        "italia": "Italia",
+        "italiano": "Italia",
+        "portugal": "Portugal",
+        "portugues": "Portugal",
+        "españa": "Espanha",
+        "espanha": "Espanha",
+        "espanhol": "Espanha",
+        "franca": "França",
+        "france": "França",
+        "frances": "França",
+    }
+    question_lower = question.lower()
+    for key, val in countries.items():
+        if key in question_lower:
+            return val
+    return None
 
 
 def _format_price(value: Any) -> str:
@@ -71,36 +98,86 @@ PROMPT = ChatPromptTemplate.from_messages(
 llm = ChatOpenAI(model=chat_model, temperature=0.2)
 
 
-def _build_qa_chain(question: str) -> RetrievalQA:
+def _build_retriever_with_filters(question: str):
+    """
+    Cria um retriever com filtros inteligentes baseados na pergunta do usuario.
+    Implementa Self-Querying RAG: o LLM detecta automaticamente filtros desejados.
+    """
     search_kwargs: Dict[str, Any] = {"k": 4}
+    filters_applied = []
 
-    # Pre-filtragem por metadado numerico para reduzir custo e aumentar precisao.
+    # Filtro 1: Preco (pre-filtragem)
     price_cap = _extract_price_cap(question)
     if price_cap is not None:
         search_kwargs["filter"] = {"preco": {"$lte": price_cap}}
+        filters_applied.append(f"preco <= R${price_cap:.2f}")
 
-    retriever = vector_db.as_retriever(search_kwargs=search_kwargs)
-    return RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=retriever,
-        chain_type_kwargs={"prompt": PROMPT},
-        return_source_documents=True,
+    # Filtro 2: Pais (pre-filtragem para Self-Querying)
+    country = _extract_country_filter(question)
+    if country is not None:
+        if "filter" in search_kwargs:
+            search_kwargs["filter"]["pais"] = country
+        else:
+            search_kwargs["filter"] = {"pais": country}
+        filters_applied.append(f"pais = {country}")
+
+    return vector_db.as_retriever(search_kwargs=search_kwargs), filters_applied
+
+
+def _format_docs(docs: list[Document]) -> str:
+    """Formata documentos recuperados para o prompt."""
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
+def _build_lcel_chain(question: str):
+    """
+    Constroi uma chain usando LCEL (LangChain Expression Language).
+    Isso e a forma moderna e recomendada pela equipe do LangChain.
+    """
+    retriever, filters_applied = _build_retriever_with_filters(question)
+
+    # LCEL: Define a sequencia de operacoes de forma declarativa
+    chain = (
+        {
+            "context": retriever | _format_docs,
+            "question": RunnablePassthrough(),
+        }
+        | PROMPT
+        | llm
+        | StrOutputParser()
     )
+
+    return chain, retriever, filters_applied
 
 
 def perguntar_ao_sommelier(pergunta: str) -> Dict[str, Any]:
-    qa_chain = _build_qa_chain(pergunta)
-    return qa_chain.invoke({"query": pergunta})
+    """
+    Interface publica que mantém compatibilidade com o codigo anterior,
+    mas agora usa LCEL + Self-Querying internamente.
+    """
+    chain, retriever, filters_applied = _build_lcel_chain(pergunta)
+
+    # Executa a chain LCEL
+    resposta_texto = chain.invoke({"context": retriever, "question": pergunta})
+
+    # Recupera tambem os documentos para exibicao
+    docs = retriever.get_relevant_documents(pergunta)
+
+    return {
+        "result": resposta_texto,
+        "source_documents": docs,
+        "filters_applied": filters_applied,
+    }
 
 
 def main() -> None:
     print("\nHarmoniz.AI: Ola! Sou seu Sommelier Digital. Como posso ajudar seu paladar hoje?")
-    print("(Digite 'sair' para encerrar)")
+    print("Teste filtros como: 'tinto argentino ate 80 reais' ou 'vinho italiano para frutos do mar'")
+    print("(Digite 'sair' para encerrar)\n")
 
     while True:
         try:
-            user_input = input("\nVoce: ").strip()
+            user_input = input("Voce: ").strip()
 
             if user_input.lower() in ["sair", "tchau", "exit", "quit"]:
                 print("\nHarmoniz.AI: Foi um prazer! Um brinde e ate a proxima.\n")
@@ -114,9 +191,18 @@ def main() -> None:
 
             texto_ia = resposta_completa.get("result", "Nao consegui gerar resposta.")
             fontes = resposta_completa.get("source_documents", [])
+            filtros = resposta_completa.get("filters_applied", [])
 
             print(f"\nHarmoniz.AI:\n{texto_ia}")
 
+            # Exibe filtros detectados (Self-Querying)
+            if filtros:
+                print("\n--- Filtros detectados automaticamente (Self-Querying) ---")
+                for filtro in filtros:
+                    print(f" • {filtro}")
+                print("-------------------------------------------------------")
+
+            # Exibe as fontes (Source Documents)
             if fontes:
                 print("\n--- Rotulos analisados (Source Documents) ---")
                 for i, doc in enumerate(fontes, 1):
@@ -124,7 +210,8 @@ def main() -> None:
                     preco_vinho = _format_price(
                         doc.metadata.get("preco", "Preco indisponivel")
                     )
-                    print(f" {i}. {nome_vinho} | R$ {preco_vinho}")
+                    pais_vinho = doc.metadata.get("pais", "Pais desconhecido")
+                    print(f" {i}. {nome_vinho} | {pais_vinho} | R$ {preco_vinho}")
                 print("--------------------------------------------")
 
         except KeyboardInterrupt:
