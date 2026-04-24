@@ -18,12 +18,33 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
+import langchain_core.retrievers as _lc_retrievers
+
+if not hasattr(_lc_retrievers, "LangSmithRetrieverParams"):
+    _lc_retrievers.LangSmithRetrieverParams = dict
+
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain.memory import ConversationBufferMemory
 from langchain_community.vectorstores import Chroma
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+
+class SimpleConversationMemory:
+    """Memória mínima compatível com AgentExecutor sem depender de langchain.memory."""
+
+    def __init__(self, memory_key="chat_history"):
+        self.memory_key = memory_key
+        self.chat_history = []
+
+    def load_memory_variables(self, inputs):
+        return {self.memory_key: self.chat_history}
+
+    def save_context(self, inputs, outputs):
+        self.chat_history.append({"inputs": inputs, "outputs": outputs})
+
+    def clear(self):
+        self.chat_history = []
 
 # Import com compatibilidade 0.1.20 e 0.2+
 try:
@@ -254,11 +275,7 @@ Sempre seja elegante, cordial e tecnico nas respostas."""
     agent = create_openai_tools_agent(llm=llm, tools=tools, prompt=prompt)
     
     # Cria o executor com memoria de conversa
-    memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        return_messages=True,
-        input_key="input",
-    )
+    memory = SimpleConversationMemory(memory_key="chat_history")
     
     agent_executor = AgentExecutor(
         agent=agent,

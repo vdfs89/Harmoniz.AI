@@ -4,6 +4,11 @@ import sys
 from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
+import langchain_core.retrievers as _lc_retrievers
+
+if not hasattr(_lc_retrievers, "LangSmithRetrieverParams"):
+    _lc_retrievers.LangSmithRetrieverParams = dict
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
