@@ -1,0 +1,25 @@
+# Core LangChain (versões estáveis e compatíveis)
+langchain==0.1.20
+langchain-core==0.1.53
+langchain-community==0.0.38
+langchain-openai==0.1.7
+langchain-google-genai==0.0.9
+
+# Embeddings & Vector DB
+chromadb==0.4.24
+sentence-transformers==2.2.2
+
+# Web & API
+streamlit==1.30.0
+fastapi==0.109.0
+uvicorn==0.27.0
+pydantic==2.5.3
+
+# Data Processing
+pandas==2.1.4
+openpyxl==3.1.2
+
+# Utils
+python-dotenv==1.0.0
+langsmith==0.1.38
+requests==2.31.0
