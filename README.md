@@ -4,6 +4,18 @@
 
 Sommelier digital com arquitetura RAG para recomendacao de vinhos com base em catalogo real.
 
+## Status da Aplicação
+
+| Componente | Status | Notas |
+|---|---|---|
+| **Chat RAG** | ✅ Totalmente funcional | Self-querying + ChromaDB |
+| **Agent** | ✅ Totalmente funcional | 4 ferramentas especializadas |
+| **Judge (Multi-LLM)** | ⚠️ Parcial | Requer langchain-google-genai |
+| **Streamlit Web UI** | ✅ Totalmente funcional | 3 modos selecionáveis |
+| **FastAPI REST** | ✅ Totalmente funcional | 3 endpoints |
+| **ChromaDB (VectorDB)** | ✅ Funcional | 570 vinhos indexados |
+| **LangSmith (MLOps)** | ✅ Configurado | Observabilidade opcional |
+
 ## Visao Geral
 
 O `Harmoniz.AI` foi projetado para responder perguntas sobre vinhos com maior precisao e menor risco de alucinacao, combinando:
@@ -16,17 +28,53 @@ Em vez de responder apenas com conhecimento generico, o sistema busca rotulos e 
 
 ## Principais Recursos
 
-- Ingestao de dados em `CSV`, `XLSX` e `XLS`.
-- Conversao do catalogo em documentos semanticos com metadados (`nome`, `tipo`, `pais`, `preco`).
-- Armazenamento vetorial persistente com `ChromaDB`.
-- **Chat RAG com LCEL** (LangChain Expression Language moderna) e **Self-Querying** (filtros automáticos por país e preço).
-- **LangChain Agent com Ferramentas Especializadas** (busca catalogo, precos, estoque, recomendacoes).
-- Recuperacao com `k=4` para aumentar comparacao entre rotulos na resposta.
-- Pre-filtragem inteligente por metadado numerico de preco (ex.: perguntas com "ate 100").
-- Exibicao de `source_documents` no terminal para transparencia do RAG.
-- Inicializacao e loop de atendimento com tratamento robusto de excecoes.
-- Modo de avaliacao com multiplos modelos e juiz.
-- Fallback resiliente quando algum provedor falha.
+### 🎯 3 Arquiteturas de Resposta
+
+1. **💨 Chat RAG (Rápido < 500ms)**
+   - Self-Querying com filtros automáticos (país, preço)
+   - Recuperação de 4 documentos relevantes
+   - Resposta fundamentada com source documents
+   - ✅ Pronto para produção
+
+2. **🤖 Agent Inteligente (1-3s)**
+   - 4 ferramentas especializadas:
+     - 🔍 Busca no catálogo (RAG)
+     - 💰 Verifica preços e promoções
+     - 📦 Consulta disponibilidade
+     - 🍴 Recomendações por harmonização
+   - Orquestração automática com LangChain AgentExecutor
+   - Memória de conversação (ConversationBufferMemory)
+   - ✅ Pronto para produção
+
+3. **🏆 Judge Multi-LLM (3-5s, máxima qualidade)**
+   - Consulta 3 modelos em paralelo:
+     - OpenAI GPT-4o-mini
+     - Groq Llama-3.3
+     - Google Gemini-2.0
+   - Juiz seleciona melhor resposta
+   - ⚠️ Requer configuração de Google Gemini
+
+### 💾 Dados e RAG
+
+- Ingestão automática de `CSV`, `XLSX` e `XLS`
+- 570+ vinhos com metadados: nome, tipo, país, preço
+- ChromaDB para persistência de embeddings
+- OpenAI `text-embedding-3-small` para semantização
+- Self-Querying para filtros automáticos de país/preço
+
+### 🌐 Interfaces
+
+- **Streamlit Web UI** — Chat interativo (app.py)
+- **FastAPI REST API** — 3 endpoints HTTP
+- **CLI** — Scripts diretos (initialize.py, src/engine/*.py)
+- **LangSmith Dashboard** — Observabilidade em tempo real
+
+### 🔒 Observabilidade & MLOps
+
+- LangSmith integrado para rastreamento de chains
+- Métricas automáticas: latência, custos, alucinações
+- @traceable decorator para funções customizadas
+- Logs estruturados com structured_logging
 
 ## Arquitetura
 
@@ -66,7 +114,7 @@ Em vez de responder apenas com conhecimento generico, o sistema busca rotulos e 
 - OpenAI / Groq / Gemini
 - Pandas + OpenPyXL
 
-## Configuracao do Ambiente
+## ⚡ Início Rápido
 
 ### 1) Criar ambiente virtual
 
@@ -84,68 +132,125 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-### 2) Instalar dependencias
+### 2) Instalar dependências (Recomendado)
+
+**Opção A: Com versões pinadas (RECOMENDADO - mais estável)**
+
+```bash
+pip install -r requirements-pinned.txt
+```
+
+Este arquivo contém versões específicas testadas de LangChain 0.1.20, que garante compatibilidade total com:
+- ✅ Agent com `AgentExecutor`
+- ✅ Chat RAG com `ChatPromptTemplate`
+- ✅ ChromaDB persistente
+- ⚠️ Judge (parcial - requer langchain-google-genai 0.0.9)
+
+**Opção B: Com versões flexíveis**
 
 ```bash
 pip install -r requirements.txt
 ```
 
+### ⚠️ Resolva conflitos comuns de pydantic
+
+Se receber erro como: `pydantic-core version (2.14.6) is incompatible with pydantic (2.11.7)`:
+
+```bash
+pip install --upgrade pydantic pydantic-core
+```
+
+Ou, para máxima estabilidade com LangChain 0.1.20:
+
+```bash
+pip install pydantic==2.11.7 pydantic-core==2.23.4 --force-reinstall --no-deps
+```
+
 ### 3) Configurar `.env`
 
-Crie ou ajuste o arquivo `.env` com as variaveis abaixo:
+Crie ou ajuste o arquivo `.env` com as variáveis abaixo:
 
 ```env
-# Chaves
-OPENAI_API_KEY=...
-GROQ_API_KEY=...
-GEMINI_API_KEY=...
+# ====== CHAVES DE API (OBRIGATÓRIAS) ======
+OPENAI_API_KEY=sk_...          # https://platform.openai.com/api-keys
+GROQ_API_KEY=gsk_...           # https://console.groq.com/keys
+GEMINI_API_KEY=AIza...         # https://aistudio.google.com/app/apikeys
 
-# Modelos
-OPENAI_MODEL=gpt-4o-mini
-GROQ_MODEL=llama-3.1-70b-versatile
-GEMINI_MODEL=gemini-1.5-flash
+# ====== MODELOS LLM ======
+OPENAI_MODEL=gpt-4o-mini       # Recomendado: custo/qualidade
+GROQ_MODEL=llama-3.3-70b-versatile
+GEMINI_MODEL=gemini-2.0-flash
 JUDGE_PROVIDER=openai
 JUDGE_MODEL=gpt-4o-mini
 
-# Dados e RAG
+# ====== DADOS E RAG ======
 WINE_DATA_PATH=data/raw/wines_from_winecombr.xlsx
 VECTOR_DB_PATH=data/processed/chroma_db
-RAG_TOP_K=6
+RAG_TOP_K=4
+
+# ====== LANGSMITH (Opcional - Observabilidade) ======
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=ls_...
+LANGCHAIN_PROJECT=harmoniz-ai-production
 ```
 
-Observacao:
-- `WINE_CSV_PATH` ainda pode ser usado como retrocompatibilidade no `ingest.py`.
+### 4) Teste inicial (Validar Instalação)
+
+```bash
+python initialize.py
+```
+
+Este script valida:
+- ✅ Ambiente virtual ativado
+- ✅ `.env` carregado com API keys
+- ✅ ChromaDB acessível
+- ✅ Todos os imports funcionam (Chat RAG, Agent, Judge)
+- ✅ Streamlit configurado
+
+Output esperado:
+```
+======================================================================
+🍷 HARMONIZ.AI — Inicializador Streamlit
+======================================================================
+
+✓ Ambiente virtual ativado
+✓ .env já existe
+✓ ChromaDB encontrado
+✓ Importações OK
+
+========== PRONTO PARA RODAR ==========
+```
+
+**Se receber erro em Importações**, consulte [Troubleshooting](#troubleshooting)
 
 ## Web UI com Streamlit (Visual & Interativo)
 
 ### 🎨 Interface de Chat Profissional
 
-Harmoniz.AI também tem uma interface visual moderna construída com **Streamlit** — a ferramenta favorita dos Data Scientists.
+Harmoniz.AI tem uma interface visual moderna construída com **Streamlit** — a ferramenta favorita dos Data Scientists.
 
 **3 modos selecionáveis na barra lateral:**
-- 💨 **Chat RAG** — Rápido (< 500ms)
-- 🤖 **Agente** — Inteligente com 4 ferramentas
-- 🏆 **Juiz** — Multi-LLM máxima qualidade
+- 💨 **Chat RAG** — Rápido (< 500ms) ✅ Totalmente funcional
+- 🤖 **Agente** — Inteligente com 4 ferramentas ✅ Totalmente funcional
+- 🏆 **Juiz** — Multi-LLM máxima qualidade ⚠️ Requer Google Gemini ativo
 
-### 🚀 Rodar Localmente (Forma Fácil)
+### 🚀 Rodar Localmente (2 Opções)
 
-**Opção 1: Script Automático (Recomendado)**
+**Opção 1: Script Automático (RECOMENDADO)**
 
 ```bash
 python initialize.py
 ```
 
 Este script:
-- ✅ Valida pré-requisitos
-- ✅ Verifica .env e secrets.toml
-- ✅ Testa importações
-- ✅ Inicia Streamlit automaticamente
+- ✅ Valida pré-requisitos (venv, .env, ChromaDB)
+- ✅ Testa importações de todos os módulos
+- ✅ Abre Streamlit automaticamente
+- ✅ Mostra relatório de saúde do sistema
 
 **Opção 2: Manualmente**
 
 ```bash
-# 1. Configure .env com suas API keys
-# 2. Inicie Streamlit
 streamlit run app.py
 ```
 
@@ -155,7 +260,7 @@ streamlit run app.py
 http://localhost:8501
 ```
 
-### 🌍 Deploy no Streamlit Cloud (Grátis)
+### 🌍 Deploy no Streamlit Cloud (Grátis & Fácil)
 
 Tornar seu app público em uma URL única como `https://harmonizai.streamlit.app/`:
 
@@ -529,6 +634,120 @@ python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
 \t- `SommelierMetrics` classe para coleta de métricas de negócio.
 \t- Exemplos de monitoramento: latência, alucinações, taxa de aceitação.
 \t- Relatórios enviados automaticamente para https://smith.langchain.com em tempo real.
+
+## Troubleshooting & Erros Comuns
+
+### ❌ "Erro ao carregar módulos: cannot import name 'AgentExecutor'"
+
+**Causa:** Versão incorreta de LangChain (0.2+ descontinuou AgentExecutor).
+
+**Solução:**
+```bash
+# Instale LangChain 0.1.20 com compatibilidade layer
+pip install -r requirements-pinned.txt
+# Ou manualmente:
+pip install langchain==0.1.20 langchain-core==0.1.53
+```
+
+Se o erro persistir:
+```bash
+# Remova cache e reinstale
+pip cache purge
+pip install -r requirements-pinned.txt --force-reinstall
+```
+
+### ❌ "No module named 'langchain.memory'"
+
+**Causa:** Versão moderna de LangChain moveu ConversationBufferMemory.
+
+**Solução (já corrigida em sommelier_agent.py):**
+```python
+# ✓ Código já implementado com fallback:
+try:
+    from langchain.memory import ConversationBufferMemory
+except ImportError:
+    from langchain_community.memory import ConversationBufferMemory
+```
+
+### ❌ "pydantic-core version (2.14.6) incompatible with pydantic (2.11.7)"
+
+**Causa:** Versões misturadas de pydantic e pydantic-core após múltiplas instalações.
+
+**Solução (Recomendado):**
+```bash
+# Reinstale com versões compatíveis
+pip install pydantic==2.11.7 pydantic-core==2.23.4 --force-reinstall --no-deps
+```
+
+Ou:
+```bash
+# Deixe pip resolver automaticamente
+pip install --upgrade pydantic pydantic-core
+```
+
+### ❌ "No module named 'langchain.prompts'"
+
+**Causa:** LangChain 0.1.20+ reorganizou módulos.
+
+**Solução (já corrigida em harmoniz_ai.py e sommelier_agent.py):**
+```python
+# ✓ Código correto:
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+```
+
+### ❌ "ChromaDB não encontrado" ao rodar initialize.py
+
+**Causa:** Arquivo não foi gerado. Você precisa rodar ingest.py primeiro.
+
+**Solução:**
+```bash
+# 1. Certifique-se que tem dados em data/raw/
+# 2. Execute:
+python src/engine/ingest.py
+# 3. Depois teste:
+python initialize.py
+```
+
+### ❌ "Connection refused" ao rodar Streamlit Cloud
+
+**Causa:** Streamlit Cloud está tentando rodar `setup_project.py` em vez de `app.py`.
+
+**Solução:**
+1. Vá em https://share.streamlit.io → seu app
+2. Clique "..." (três pontos) → "Settings"
+3. Mude "Main file path" para: `app.py`
+4. Clique "Save"
+5. Streamlit fará redeploy automático
+
+### ⚠️ "Gemini Judge Mode" com erro de import
+
+**Status:** Requer `langchain-google-genai 0.0.9` (compatível com LangChain 0.1.20).
+
+**Se receber erro:**
+```bash
+# Verifique a versão instalada
+pip show langchain-google-genai
+
+# Reinstale versão compatível
+pip install langchain-google-genai==0.0.9 --force-reinstall
+```
+
+**Alternativa:** Use apenas Chat RAG e Agent (ambos totalmente funcionais).
+
+### ✅ Validar instalação
+
+```bash
+# Use o script de inicialização
+python initialize.py
+
+# Resultado esperado:
+# ✓ Ambiente virtual ativado
+# ✓ .env já existe
+# ✓ ChromaDB encontrado
+# ✓ Importações OK
+```
+
+---
 
 ## Troubleshooting Rapido
 
