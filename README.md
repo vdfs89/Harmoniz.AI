@@ -116,6 +116,57 @@ RAG_TOP_K=6
 Observacao:
 - `WINE_CSV_PATH` ainda pode ser usado como retrocompatibilidade no `ingest.py`.
 
+## Observabilidade com LangSmith (MLOps)
+
+### Setup LangSmith
+
+LangSmith é a plataforma oficial de observabilidade para LangChain, permitindo rastrear, debugar e otimizar chains em produção.
+
+**1) Criar conta e gerar API Key**
+
+- Acesse https://smith.langchain.com
+- Crie uma conta (gratuita)
+- Gere uma API Key no dashboard
+- Copie a chave
+
+**2) Configurar `.env`**
+
+Adicione ao seu `.env`:
+
+```env
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=<sua_api_key_aqui>
+LANGCHAIN_PROJECT=harmoniz-ai-production
+```
+
+Use `.env.example` como referência.
+
+**3) Rodar com observabilidade**
+
+```bash
+python src/utils/observability_setup.py
+```
+
+O script demonstra como rastrear:
+- ⏱️ **Latência**: quanto tempo leva cada call ao LLM
+- 📊 **Métricas**: taxa de aceitação, alucinações detectadas
+- 🔍 **Debugging**: inputs/outputs de cada ferramenta
+- 💰 **Custos**: tokens consumidos por modelo
+
+**4) Visualizar no LangSmith**
+
+Após configurar, acesse seu projeto em:
+```
+https://smith.langchain.com/projects/harmoniz-ai-production/
+```
+
+No dashboard você verá:
+- Cada execução de chain tracida
+- Latência de retriever, LLM, etc
+- Erros e exceções em tempo real
+- Taxa de alucinações
+- Comparação de performance entre modelos
+
 ## Como Executar
 
 ### 1) Ingerir e indexar os vinhos
@@ -185,11 +236,12 @@ python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
 	- Mantém histórico de conversa com `ConversationBufferMemory`.
 	- Demonstra padrão de produção para integração de IA em sistemas corporativos.
 
-- `src/engine/multi_llm_judge.py` — **Modo Multi-Modelo com Árbitro**
-	- Recupera contexto via RAG.
-	- Consulta GPT, Groq e Gemini (quando configurados) em paralelo.
-	- Usa um "juiz" para escolher a melhor resposta entre os modelos.
-	- Aplica fallback se algum modelo/juiz falhar.
+- `src/utils/observability_setup.py` — **Observabilidade com LangSmith (MLOps)**
+\t- Demonstra como integrar LangSmith para rastreamento automático.
+\t- `@traceable` decorator para rastrear functions customizadas.
+\t- `SommelierMetrics` classe para coleta de métricas de negócio.
+\t- Exemplos de monitoramento: latência, alucinações, taxa de aceitação.
+\t- Relatórios enviados automaticamente para https://smith.langchain.com em tempo real.
 
 ## Troubleshooting Rapido
 

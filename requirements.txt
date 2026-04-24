@@ -7,3 +7,4 @@ python-dotenv
 ipykernel
 openpyxl
 langchain-google-genai
+langsmith
