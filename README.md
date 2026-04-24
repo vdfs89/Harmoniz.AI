@@ -19,11 +19,12 @@ Em vez de responder apenas com conhecimento generico, o sistema busca rotulos e 
 - Ingestao de dados em `CSV`, `XLSX` e `XLS`.
 - Conversao do catalogo em documentos semanticos com metadados (`nome`, `tipo`, `pais`, `preco`).
 - Armazenamento vetorial persistente com `ChromaDB`.
-- Chat RAG com persona de sommelier usando `ChatPromptTemplate`.
+- **Chat RAG com LCEL** (LangChain Expression Language moderna) e **Self-Querying** (filtros automáticos por país e preço).
+- **LangChain Agent com Ferramentas Especializadas** (busca catalogo, precos, estoque, recomendacoes).
 - Recuperacao com `k=4` para aumentar comparacao entre rotulos na resposta.
-- Pre-filtragem por metadado numerico de preco (ex.: perguntas com "ate 100").
+- Pre-filtragem inteligente por metadado numerico de preco (ex.: perguntas com "ate 100").
 - Exibicao de `source_documents` no terminal para transparencia do RAG.
-- Inicializacao e loop de atendimento com tratamento de excecoes.
+- Inicializacao e loop de atendimento com tratamento robusto de excecoes.
 - Modo de avaliacao com multiplos modelos e juiz.
 - Fallback resiliente quando algum provedor falha.
 
@@ -136,7 +137,25 @@ Exemplos de pergunta no chat:
 
 Quando houver contexto recuperado, o script imprime os rotulos analisados ao final da resposta.
 
-### 3) Rodar o modo multi-modelo com juiz
+### 3) Rodar o Agent com Ferramentas Especializadas
+
+```bash
+python src/engine/sommelier_agent.py
+```
+
+O Agent orquestra automaticamente múltiplas ferramentas:
+- Busca no catálogo RAG
+- Consulta de preços e promoções
+- Verificação de disponibilidade
+- Recomendações por prato/ocasião
+
+Exemplos de perguntas para o Agent:
+- `Que vinho você recomenda para um churrasco?`
+- `Qual é o preço promocional do Malbec?`
+- `Tem Cabernet em estoque?`
+- `Que vinho harmoniza com frutos do mar?`
+
+### 4) Rodar o modo multi-modelo com juiz
 
 ```bash
 python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
@@ -149,17 +168,27 @@ python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
 	- Monta contexto rico por vinho.
 	- Gera embeddings e persiste no Chroma.
 
-- `src/engine/harmoniz_ai.py`
-	- Carrega base vetorial com tratamento de falha critica na inicializacao.
-	- Executa `RetrievalQA` com `ChatPromptTemplate`.
-	- Usa recuperacao com `k=4` e aplica filtro por preco em metadado quando detecta "ate X".
-	- Retorna e imprime `source_documents` (nome e preco) para dar visibilidade do grounding.
-	- Disponibiliza chat interativo com tratamento de `KeyboardInterrupt` e erros de API.
+- `src/engine/harmoniz_ai.py` — **Chat RAG Moderno**
+	- Implementa LCEL (LangChain Expression Language) — padrão moderno do LangChain.
+	- **Self-Querying RAG**: detecta automaticamente filtros por país e preço na pergunta.
+	- Usa recuperacao com `k=4` e aplica filtros em metadados para maior precisão.
+	- Retorna e imprime `source_documents` (nome, país, preco) para transparência RAG.
+	- Disponibiliza chat interativo com tratamento robusto de excecoes.
 
-- `src/engine/multi_llm_judge.py`
+- `src/engine/sommelier_agent.py` — **Agent com Ferramentas (Novo)**
+	- Orquestra múltiplas ferramentas especializadas usando `AgentExecutor`.
+	- **Tool 1**: buscar_vinho_no_catalogo (RAG + Chroma)
+	- **Tool 2**: verificar_preco_promocional (simulacao de BD SQL)
+	- **Tool 3**: verificar_disponibilidade (simulacao de inventário)
+	- **Tool 4**: recomendar_harmonizacao (regras de sommelier)
+	- Agent decide automaticamente qual ferramenta usar baseado na pergunta.
+	- Mantém histórico de conversa com `ConversationBufferMemory`.
+	- Demonstra padrão de produção para integração de IA em sistemas corporativos.
+
+- `src/engine/multi_llm_judge.py` — **Modo Multi-Modelo com Árbitro**
 	- Recupera contexto via RAG.
-	- Consulta GPT, Groq e Gemini (quando configurados).
-	- Escolhe resposta final com juiz (`openai`, `groq` ou `gemini`).
+	- Consulta GPT, Groq e Gemini (quando configurados) em paralelo.
+	- Usa um "juiz" para escolher a melhor resposta entre os modelos.
 	- Aplica fallback se algum modelo/juiz falhar.
 
 ## Troubleshooting Rapido
@@ -172,10 +201,12 @@ python src/engine/multi_llm_judge.py "Quero um vinho para massa com cogumelos"
 
 ## Roadmap
 
-- Filtros por tipo/pais e combinacao de filtros compostos no retriever.
-- API REST para integracao com front-end.
-- Avaliacao automatica de qualidade das respostas.
-- Observabilidade e telemetria de prompts.
+- **LangSmith Integration** (Monitoramento/MLOps) — rastrear latência, custos, alucinações.
+- **Pydantic + Structured Extraction** — processar PDF de vinhos em JSON estruturado.
+- **Tool.bind() com LangSmith Callbacks** — observabilidade de cada ferramenta do Agent.
+- API REST FastAPI para exposição dos 3 modos (Chat RAG, Agent, Multi-LLM Judge).
+- Avaliacao automatica de qualidade das respostas usando langchain evaluation framework.
+- Dashboard de telemetria com métricas de negócio (recomendações aceitas, conversão, etc).
 
 ## Autor
 
