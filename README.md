@@ -116,6 +116,200 @@ RAG_TOP_K=6
 Observacao:
 - `WINE_CSV_PATH` ainda pode ser usado como retrocompatibilidade no `ingest.py`.
 
+## REST API (FastAPI)
+
+### 🚀 Início Rápido
+
+**1) Instale dependências REST (se ainda não tiver):**
+
+```bash
+pip install fastapi uvicorn pydantic requests
+```
+
+Ou rode:
+```bash
+pip install -r requirements.txt
+```
+
+**2) Inicie o servidor:**
+
+```bash
+python run_api.py
+```
+
+ou com uvicorn direto:
+```bash
+uvicorn src.api.main:app --reload --port 8000
+```
+
+**3) Acesse a documentação interativa:**
+
+```
+http://localhost:8000/docs
+```
+
+Lá você pode:
+- ✅ Testar todos os 3 endpoints
+- 📖 Ver documentação detalhada
+- 🔍 Inspecionar schemas Pydantic
+
+### 📡 3 Endpoints — 3 Estratégias
+
+| Endpoint | Latência | Custo | Melhor Para | URL |
+|---|---|---|---|---|
+| **`POST /v1/chat`** | ⚡ <500ms | 💰 Mínimo | Buscas simples, dia-a-dia | http://localhost:8000/docs#/Modes/chat_rag |
+| **`POST /v1/agent`** | ⏱️ 1-3s | 💵 Médio | Múltiplas ferramentas, CRM | http://localhost:8000/docs#/Modes/agent_sommelier |
+| **`POST /v1/judge`** | ⏲️ 3-5s | 💳 3x Custo | Máxima qualidade, crítico | http://localhost:8000/docs#/Modes/multi_llm_judge |
+
+### 💡 Exemplos de Uso
+
+#### Modo CHAT (Recomendado para MVP)
+
+Busca rápida com Self-Querying automático:
+
+```bash
+curl -X POST "http://localhost:8000/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Qual vinho combina com frutos do mar e custa até R$100?",
+    "user_id": "user_123"
+  }'
+```
+
+Resposta:
+```json
+{
+  "answer": "Para frutos do mar recomendo um Sauvignon Blanc francês...",
+  "source_documents": [
+    {
+      "nome": "Sauvignon Blanc Loire Valley",
+      "tipo": "Branco",
+      "pais": "França",
+      "preco": "R$ 85"
+    }
+  ],
+  "filters_applied": ["preço_máximo: R$100", "tipo: Branco"],
+  "mode": "chat"
+}
+```
+
+#### Modo AGENT (Integração CRM/ERP)
+
+Orquestração automática de ferramentas:
+
+```bash
+curl -X POST "http://localhost:8000/v1/agent" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Tem Malbec com promoção em estoque?",
+    "user_id": "vendedor_456"
+  }'
+```
+
+Resposta:
+```json
+{
+  "answer": "✓ PROMOCAO ATIVA: 15% de desconto em Malbec Argentino. Temos 45 garrafas em estoque!",
+  "tools_used": [
+    "buscar_vinho_no_catalogo",
+    "verificar_preco_promocional",
+    "verificar_disponibilidade"
+  ],
+  "mode": "agent"
+}
+```
+
+#### Modo JUDGE (Máxima Qualidade)
+
+Compara respostas de 3 LLMs e escolhe a melhor:
+
+```bash
+curl -X POST "http://localhost:8000/v1/judge" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Qual é o melhor Pinot Noir para investimento?",
+    "user_id": "sommelier_789"
+  }'
+```
+
+Resposta:
+```json
+{
+  "winner": "gpt-4o-mini",
+  "reason": "Resposta mais completa com análise de potencial de envelhecimento",
+  "answer": "Para investimento em Pinot Noir, recomendo foco em Borgonha...",
+  "model_scores": {
+    "gpt-4o-mini": 0.95,
+    "groq-llama": 0.87,
+    "gemini": 0.82
+  },
+  "mode": "judge"
+}
+```
+
+### 🐳 Docker (Production Ready)
+
+**Build da imagem:**
+
+```bash
+docker build -t harmoniz-api:1.0.0 .
+```
+
+**Rodar com docker-compose:**
+
+```bash
+# Cria variáveis em .env primeiro!
+docker-compose up --build
+```
+
+**Rodar manualmente:**
+
+```bash
+docker run -p 8000:8000 \
+  -e OPENAI_API_KEY=sk_... \
+  -e LANGCHAIN_API_KEY=ls_... \
+  harmoniz-api:1.0.0
+```
+
+**Health check:**
+
+```bash
+curl http://localhost:8000/health
+```
+
+### 📊 Monitoramento em Tempo Real
+
+Com LangSmith configurado, a API automaticamente rastreia:
+
+- ⏱️ **Latência**: Quanto tempo cada request leva
+- 💰 **Custos**: Tokens consumidos (GPT, Gemini, Llama)
+- 🔍 **Debugging**: Inputs/outputs de cada ferramenta
+- 📈 **Métricas**: Taxa de aceitação, alucinações
+
+Acesse: https://smith.langchain.com/projects/harmoniz-ai
+
+### 🏥 Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+Resposta com status de tudo:
+```json
+{
+  "status": "online",
+  "system": "Harmoniz.AI",
+  "environment": "production",
+  "langsmith_enabled": true,
+  "vector_db_ready": true,
+  "models_configured": {
+    "openai": true,
+    "groq": true,
+    "gemini": true
+  }
+}
+```
+
 ## Observabilidade com LangSmith (MLOps)
 
 ### Setup LangSmith

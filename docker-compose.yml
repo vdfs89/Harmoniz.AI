@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+  # ===================================================================
+  # Harmoniz.AI API Service
+  # ===================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: harmoniz-api
+    
+    ports:
+      - "8000:8000"
+    
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONUNBUFFERED=1
+      # Carrega variáveis do .env
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
+      - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-harmoniz-ai}
+    
+    volumes:
+      # Monta dados localmente para persistência
+      - ./data:/app/data
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    
+    restart: unless-stopped
+    
+    networks:
+      - harmoniz-network
+
+# ===================================================================
+# Network
+# ===================================================================
+networks:
+  harmoniz-network:
+    driver: bridge
+
+# ===================================================================
+# Volumes
+# ===================================================================
+volumes:
+  data:
+    driver: local
