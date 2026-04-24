@@ -5,3 +5,17 @@ __pycache__/
 .ipynb_checkpoints/
 data/processed/*
 *.log
+
+# Streamlit (secrets locais, não commitar)
+.streamlit/secrets.toml
+.streamlit/__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -116,6 +116,76 @@ RAG_TOP_K=6
 Observacao:
 - `WINE_CSV_PATH` ainda pode ser usado como retrocompatibilidade no `ingest.py`.
 
+## Web UI com Streamlit (Visual & Interativo)
+
+### 🎨 Interface de Chat Profissional
+
+Harmoniz.AI também tem uma interface visual moderna construída com **Streamlit** — a ferramenta favorita dos Data Scientists.
+
+**3 modos selecionáveis na barra lateral:**
+- 💨 **Chat RAG** — Rápido (< 500ms)
+- 🤖 **Agente** — Inteligente com 4 ferramentas
+- 🏆 **Juiz** — Multi-LLM máxima qualidade
+
+### 🚀 Rodar Localmente
+
+**1) Instale Streamlit:**
+
+```bash
+pip install streamlit
+# ou update:
+pip install -r requirements.txt
+```
+
+**2) Inicie a interface:**
+
+```bash
+streamlit run app.py
+```
+
+Você verá:
+```
+  You can now view your Streamlit app in your browser.
+  Local URL: http://localhost:8501
+```
+
+**3) Abra no navegador:**
+
+```
+http://localhost:8501
+```
+
+### 🐳 Deploy no Streamlit Cloud (Grátis)
+
+Tornar seu app público em uma URL única como `https://harmonizai.streamlit.app/`:
+
+**Passo 1: Push para GitHub**
+```bash
+git add .
+git commit -m "Add Streamlit web UI"
+git push origin main
+```
+
+**Passo 2: Conectar ao Streamlit Cloud**
+- Vá em https://share.streamlit.io
+- Clique "New app"
+- Conecte sua conta GitHub
+- Selecione repositório: `vdfs89/Harmoniz.AI`
+- Branch: `main`
+- Main file: `app.py`
+- Clique "Deploy"
+
+**Passo 3: Configurar Secrets (IMPORTANTE)**
+- Após deploy, clique em "..."
+- "Settings" → "Secrets"
+- Cole suas API keys (igual a .streamlit/secrets.toml local)
+
+**Passo 4: Pronto!**
+- App estará em: `https://harmonizai.streamlit.app/`
+- Compartilhe a URL durante a entrevista! 🎉
+
+Para mais detalhes, veja [STREAMLIT_DEPLOYMENT.md](STREAMLIT_DEPLOYMENT.md)
+
 ## REST API (FastAPI)
 
 ### 🚀 Início Rápido
