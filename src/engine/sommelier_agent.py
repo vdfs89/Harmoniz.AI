@@ -19,8 +19,9 @@ from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
 from langchain.agents import AgentExecutor, create_openai_tools_agent
+from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.memory import ConversationBufferMemory
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.vectorstores import Chroma
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
