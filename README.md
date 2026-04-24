@@ -127,64 +127,87 @@ Harmoniz.AI também tem uma interface visual moderna construída com **Streamlit
 - 🤖 **Agente** — Inteligente com 4 ferramentas
 - 🏆 **Juiz** — Multi-LLM máxima qualidade
 
-### 🚀 Rodar Localmente
+### 🚀 Rodar Localmente (Forma Fácil)
 
-**1) Instale Streamlit:**
+**Opção 1: Script Automático (Recomendado)**
 
 ```bash
-pip install streamlit
-# ou update:
-pip install -r requirements.txt
+python initialize.py
 ```
 
-**2) Inicie a interface:**
+Este script:
+- ✅ Valida pré-requisitos
+- ✅ Verifica .env e secrets.toml
+- ✅ Testa importações
+- ✅ Inicia Streamlit automaticamente
+
+**Opção 2: Manualmente**
 
 ```bash
+# 1. Configure .env com suas API keys
+# 2. Inicie Streamlit
 streamlit run app.py
 ```
 
-Você verá:
-```
-  You can now view your Streamlit app in your browser.
-  Local URL: http://localhost:8501
-```
-
-**3) Abra no navegador:**
+**3. Abra no navegador:**
 
 ```
 http://localhost:8501
 ```
 
-### 🐳 Deploy no Streamlit Cloud (Grátis)
+### 🌍 Deploy no Streamlit Cloud (Grátis)
 
 Tornar seu app público em uma URL única como `https://harmonizai.streamlit.app/`:
 
-**Passo 1: Push para GitHub**
+**Passo 1: Prepare localmente**
+
+```bash
+# 1. Certifique-se que .env está configurado
+# 2. Teste: python initialize.py
+# 3. Verifique que tudo funciona
+```
+
+**Passo 2: Push para GitHub**
+
 ```bash
 git add .
-git commit -m "Add Streamlit web UI"
+git commit -m "Ready for Streamlit Cloud deployment"
 git push origin main
 ```
 
-**Passo 2: Conectar ao Streamlit Cloud**
+**Passo 3: Deploy no Streamlit Cloud**
+
 - Vá em https://share.streamlit.io
 - Clique "New app"
-- Conecte sua conta GitHub
-- Selecione repositório: `vdfs89/Harmoniz.AI`
-- Branch: `main`
-- Main file: `app.py`
+- **Repositório:** vdfs89/Harmoniz.AI
+- **Branch:** main
+- **Main file path:** `app.py` ⭐ (CRÍTICO: deve ser app.py, NÃO setup_project.py)
 - Clique "Deploy"
 
-**Passo 3: Configurar Secrets (IMPORTANTE)**
-- Após deploy, clique em "..."
-- "Settings" → "Secrets"
-- Cole suas API keys (igual a .streamlit/secrets.toml local)
+**Passo 4: Configure Secrets (MUITO IMPORTANTE)**
 
-**Passo 4: Pronto!**
-- App estará em: `https://harmonizai.streamlit.app/`
-- Compartilhe a URL durante a entrevista! 🎉
+Após o deploy:
+1. Clique em "..." (três pontos, canto superior direito)
+2. Selecione "Settings" → "Secrets"
+3. Cole todo o conteúdo de `.streamlit/secrets.toml.example`
+4. Substitua pelos seus valores reais
+5. Clique "Save"
 
-Para mais detalhes, veja [STREAMLIT_DEPLOYMENT.md](STREAMLIT_DEPLOYMENT.md)
+**Passo 5: Compartilhe!**
+
+Seu app estará em: `https://harmonizai.streamlit.app/`
+
+#### ⚠️ Se Receber Erro "Connection Refused"
+
+Isso significa que o Streamlit Cloud está tentando rodar `setup_project.py` em vez de `app.py`:
+
+1. No painel do Streamlit Cloud, clique em "..."
+2. Vá em "Settings" → "Advanced settings"
+3. Mude "Main file path" para: `app.py`
+4. Clique "Save"
+5. Streamlit vai fazer redeploy
+
+Para mais detalhes: veja [STREAMLIT_DEPLOYMENT.md](STREAMLIT_DEPLOYMENT.md)
 
 ## REST API (FastAPI)
 

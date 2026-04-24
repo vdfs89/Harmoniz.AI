@@ -4,102 +4,236 @@
 
 Como deployar o Harmoniz.AI no Streamlit Cloud (gratuito)
 e torná-lo acessível em: https://harmonizai.streamlit.app/
+
+⚠️ IMPORTANTE: O ficheiro principal DEVE ser app.py, NÃO setup_project.py
 """
 
 # ============================================================================
-# 1. PREPARAÇÃO LOCAL
+# 1. PREPARAÇÃO LOCAL (PRÉ-REQUISITO)
 # ============================================================================
 
 """
 Antes de fazer push para GitHub:
 
-1) Certifique-se que tem um arquivo secrets.toml com suas API keys:
+**PASSO 1: Criar arquivo secrets.toml (LOCAL ONLY)**
+
+   Local: .streamlit/secrets.toml (NÃO commitar ao GitHub!)
    
-   Arquivo: .streamlit/secrets.toml (NÃO commitar)
+   Copie o conteúdo de .streamlit/secrets.toml.example:
+   - Substitua "sk_..." pelos seus valores reais
+   - Substitua "gsk_..." pelos seus valores reais
+   - Etc.
    
-   Conteúdo:
+   Exemplo completo:
    --------
-   OPENAI_API_KEY = "sk_..."
-   GROQ_API_KEY = "gsk_..."
-   GEMINI_API_KEY = "AIzaSy..."
-   LANGCHAIN_API_KEY = "ls_..."
+   OPENAI_API_KEY = "sk_test_abc123..."
+   GROQ_API_KEY = "gsk_test_xyz789..."
+   GEMINI_API_KEY = "AIzaSyDx_test_..."
+   OPENAI_MODEL = "gpt-4o-mini"
+   GROQ_MODEL = "llama-3.3-70b-versatile"
+   GEMINI_MODEL = "gemini-2.0-flash"
+   JUDGE_PROVIDER = "openai"
+   JUDGE_MODEL = "gpt-4o-mini"
+   WINE_DATA_PATH = "data/raw/wines_from_winecombr.xlsx"
    VECTOR_DB_PATH = "data/processed/chroma_db"
    LANGCHAIN_TRACING_V2 = "false"
+   --------
    
-   IMPORTANTE: Adicionar .streamlit/secrets.toml ao .gitignore
+   ✅ O .gitignore já tem .streamlit/secrets.toml listado (não será commitado)
 
-2) Teste localmente:
+**PASSO 2: Testar localmente**
+
+   Certifique-se que tudo funciona:
+   
+   # Terminal
    streamlit run app.py
+   
+   # Browser
+   http://localhost:8501
+   
+   # Teste os 3 modos (Chat, Agent, Judge)
+   # Se tudo funcionar, está pronto para cloud!
 
-3) Se funcionou, está pronto pra cloud!
+**PASSO 3: Fazer push para GitHub**
+
+   git add .
+   git commit -m "Deploy-ready: all secrets configured locally"
+   git push origin main
 """
 
 # ============================================================================
-# 2. SETUP NO STREAMLIT CLOUD
+# 2. SETUP NO STREAMLIT CLOUD (Passo-a-Passo)
 # ============================================================================
 
 """
-**Passo 1: Criar conta**
-   • Vá em https://streamlit.io/cloud
-   • Clique em "Sign up"
-   • Conecte com sua conta GitHub
+**⚠️ AVISO CRÍTICO:**
 
-**Passo 2: Deploy**
-   • Em https://share.streamlit.io, clique "New app"
-   • Selecione seu repositório: vdfs89/Harmoniz.AI
-   • Branch: main
-   • Main file path: app.py
+Você DEVE usar o ficheiro **app.py** como "Main module" no Streamlit Cloud.
+NÃO use setup_project.py (esse é um script de inicialização que termina logo).
+
+---
+
+**PASSO 1: Acessar Streamlit Cloud**
+
+   • Vá em https://share.streamlit.io
+   • Clique em "Sign up" (se não tiver conta)
+   • Conecte sua conta GitHub
+
+---
+
+**PASSO 2: Deploy Novo App**
+
+   • Clique em "New app"
+   
+   Preencha:
+   --------
+   Repository: vdfs89/Harmoniz.AI
+   Branch: main
+   Main file path: app.py  ← ⭐ CRÍTICO: Deve ser app.py, NÃO setup_project.py
+   --------
+   
    • Clique "Deploy"
+   • Aguarde 2-5 minutos (Streamlit vai fazer build)
 
-**Passo 3: Configurar secrets (IMPORTANTE!)**
-   • Após o deploy, clique em "..."
-   • Vá em "Settings" → "Secrets"
-   • Copie os mesmos secrets do seu .streamlit/secrets.toml:
-   
-   OPENAI_API_KEY = "sk_..."
-   GROQ_API_KEY = "gsk_..."
-   GEMINI_API_KEY = "AIzaSy..."
-   LANGCHAIN_API_KEY = "ls_..."
-   VECTOR_DB_PATH = "data/processed/chroma_db"
-   LANGCHAIN_TRACING_V2 = "false"
-   
-   • Salve
+---
 
-**Passo 4: Aguarde o deploy**
-   • Streamlit vai fazer build automaticamente
-   • Pode levar 2-5 minutos
-   • Seu app estará em: https://harmonizai.streamlit.app/
+**PASSO 3: Adicionar Secrets (MUITO IMPORTANTE)**
+
+   Seu app vai ficar com erro "connection refused" se não fizer isto!
+   
+   1. Após o deploy, verá seu app em: https://harmonizai.streamlit.app/
+   2. Se aparecer erro, clique em "..." (três pontos, canto superior direito)
+   3. Selecione "Settings"
+   4. Abra a aba "Secrets"
+   5. Cole TODO o conteúdo de .streamlit/secrets.toml.example:
+   
+      OPENAI_API_KEY = "sk_..."
+      GROQ_API_KEY = "gsk_..."
+      GEMINI_API_KEY = "AIzaSy..."
+      OPENAI_MODEL = "gpt-4o-mini"
+      ...etc...
+   
+   6. Substitua os valores pelos seus valores REAIS
+   7. Clique "Save"
+   8. Streamlit vai fazer redeploy automaticamente
+
+---
+
+**PASSO 4: Verificar Se Está Online**
+
+   • Abra https://harmonizai.streamlit.app/
+   • Deve ver a interface do Harmoniz.AI carregada
+   • Teste os 3 modos (Chat, Agent, Judge)
+   • Se funcionar, pronto! 🎉
+
+---
+
+**Se Ainda Tiver Erro "Connection Refused":**
+
+   1. Verifique se escolheu **app.py** como Main file (não setup_project.py)
+   2. Verifique se adicionou TODOS os secrets obrigatórios
+   3. Verifique se os valores dos secrets estão corretos (sem aspas extras)
+   4. Clique em "Rerun" para forçar reinicialização
+   5. Se persistir, clique em "..." → "Advanced settings" → "Restart app"
 """
 
 # ============================================================================
-# 3. TROUBLESHOOTING
+# 3. TROUBLESHOOTING (Resolvendo Erros)
 # ============================================================================
 
 """
-**Problema: "ModuleNotFoundError: No module named 'src'"**
+**❌ ERRO: "Connection refused" ou "ConnectionError"**
 
-Solução: Crie um arquivo `__init__.py` vazio em:
-  src/__init__.py
-  src/engine/__init__.py
-  src/api/__init__.py
-  src/utils/__init__.py
+Causa: O Streamlit Cloud está tentando correr um script que termina (setup_project.py)
+Solução:
+  1. Verifique que escolheu **app.py** como "Main file path"
+  2. Se escolheu errado, clique em "..." → "Settings" → "Advanced settings"
+  3. Mude "Main file" de setup_project.py para app.py
+  4. Clique "Save"
+  5. Streamlit vai fazer redeploy
+  
+---
 
-**Problema: "ChromaDB not found"**
+**❌ ERRO: "ModuleNotFoundError: No module named 'src'"**
 
-Solução: Commit o diretório data/processed/chroma_db para GitHub
-  (ou re-gere com ingest.py antes de fazer push)
+Causa: Streamlit Cloud não consegue importar os módulos
+Solução:
+  1. Certifique-se que os ficheiros __init__.py existem:
+     - src/__init__.py ✓
+     - src/engine/__init__.py ✓
+     - src/api/__init__.py ✓
+     - src/utils/__init__.py ✓
+  2. Faça git push
+  3. Redeploy no Streamlit Cloud
 
-**Problema: "API keys not found"**
+---
 
-Solução: Configure as secrets no painel do Streamlit Cloud
-  Settings → Secrets → Cole seu secrets.toml
+**❌ ERRO: "No such file or directory: 'data/processed/chroma_db'"**
 
-**Problema: App tá lento**
+Causa: ChromaDB não foi commitado ou VECTOR_DB_PATH está errado
+Solução:
+  1. Localmente, regenere o ChromaDB:
+     python src/engine/ingest.py
+  2. Faça commit e push:
+     git add data/processed/chroma_db/
+     git commit -m "Include ChromaDB"
+     git push origin main
+  3. Ou, configure VECTOR_DB_PATH nos Secrets para "data/processed/chroma_db"
 
-Solução: Use cache para não re-carregar ChromaDB/Agent
-  @st.cache_resource
-  def carregar_agent():
-      return criar_sommelier_agent()
+---
+
+**❌ ERRO: "OPENAI_API_KEY is not set" ou "OpenAIError: Incorrect API key"**
+
+Causa: Secret não foi configurado ou valor está errado
+Solução:
+  1. No Streamlit Cloud, vá em "Settings" → "Secrets"
+  2. Verifique que OPENAI_API_KEY está lá
+  3. Copie exatamente o valor (sem "sk_" duplicado, sem espaços)
+  4. Salve
+  5. Clique em "Rerun" para testar
+
+---
+
+**❌ ERRO: "TimeoutError" ou "App is running behind schedule"**
+
+Causa: Tempo de resposta muito longo (> 30s)
+Solução:
+  1. Está em Free tier do Streamlit Cloud? Pode ser mais lento.
+  2. Ou use cache para não recarregar Agent/ChromaDB cada vez:
+     
+     @st.cache_resource
+     def load_agent():
+         from src.engine.sommelier_agent import criar_sommelier_agent
+         return criar_sommelier_agent()
+     
+     agent = load_agent()
+
+---
+
+**❌ ERRO: "KeyError: 'WINE_DATA_PATH'" ou variáveis de ambiente não encontradas**
+
+Causa: Faltam secrets no Streamlit Cloud
+Solução:
+  1. Configure TODAS estas variáveis nos Secrets:
+     - OPENAI_API_KEY
+     - GROQ_API_KEY
+     - GEMINI_API_KEY
+     - OPENAI_MODEL
+     - GROQ_MODEL
+     - GEMINI_MODEL
+     - WINE_DATA_PATH
+     - VECTOR_DB_PATH
+  2. Use .streamlit/secrets.toml.example como guia
+
+---
+
+**⚠️ COMO VERIFICAR SE ESTÁ TUDO CERTO:**
+
+   1. No Streamlit Cloud, clique em "..." → "View logs"
+   2. Procure por mensagens de erro
+   3. Verifique se os imports funcionam
+   4. Se vir "ModuleNotFoundError", problema é com __init__.py
+   5. Se vir "OPENAI_API_KEY", problema é com secrets
 """
 
 # ============================================================================
