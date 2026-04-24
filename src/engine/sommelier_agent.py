@@ -18,13 +18,42 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
-from langchain.agents import AgentExecutor, create_openai_tools_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.memory import ConversationBufferMemory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.vectorstores import Chroma
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+# Import com compatibilidade 0.1.20 e 0.2+
+try:
+    from langchain.agents import AgentExecutor, create_openai_tools_agent
+except ImportError:
+    # Fallback para LangChain 0.2+ usando langgraph
+    try:
+        from langchain_langgraph.prebuilt import create_react_agent
+        from langchain.agents import create_openai_tools_agent
+        
+        # Wrapper para compatibilidade
+        class AgentExecutor:
+            def __init__(self, agent, tools, memory=None, verbose=False, handle_parsing_errors=False, max_iterations=5):
+                self.agent = agent
+                self.tools = tools
+                self.memory = memory
+                self.verbose = verbose
+                self.handle_parsing_errors = handle_parsing_errors
+                self.max_iterations = max_iterations
+                self._agent = create_react_agent(agent.llm, tools)
+            
+            def invoke(self, inputs):
+                return self._agent.invoke(inputs)
+    except ImportError as e:
+        raise ImportError(
+            "AgentExecutor não encontrado. Instale com:\n"
+            "pip install -r requirements-pinned.txt\n"
+            "Ou: pip install 'langchain==0.1.20' 'langchain-core==0.1.53'\n"
+            f"Erro original: {e}"
+        )
 
 load_dotenv()
 
