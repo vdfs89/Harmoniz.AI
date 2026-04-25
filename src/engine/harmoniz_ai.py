@@ -203,8 +203,13 @@ def perguntar_ao_sommelier(pergunta: str) -> Dict[str, Any]:
     # Executa a chain LCEL (entrada deve ser apenas a pergunta)
     resposta_texto = chain.invoke(pergunta)
 
-    # Recupera tambem os documentos para exibicao
-    docs = retriever.get_relevant_documents(pergunta)
+    # Recupera tambem os documentos para exibicao (API nova do LangChain 0.2/0.3)
+    if hasattr(retriever, "invoke"):
+        docs = retriever.invoke(pergunta)
+    elif hasattr(retriever, "get_relevant_documents"):
+        docs = retriever.get_relevant_documents(pergunta)
+    else:
+        docs = []
 
     return {
         "result": resposta_texto,

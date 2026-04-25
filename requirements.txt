@@ -4,10 +4,12 @@ langchain-community>=0.3.0
 langchain-openai>=0.2.0
 langgraph
 chromadb
+langchain-chroma
 python-dotenv
 ipykernel
 openpyxl
 langchain-google-genai
+google-generativeai
 langsmith
 
 # REST API

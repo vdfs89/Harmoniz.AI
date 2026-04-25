@@ -112,42 +112,94 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;600&display=swap');
 
-    /* 1. Fundo da Página Total (Bordô Profundo) */
+    /* 1. Fundo da Página (Bordô Profundo da Imagem) */
     .stApp {
-        background-color: #722F37;
+        background-color: #5D101D;
     }
 
-    /* 2. Título Principal (Harmoniz em Amarelo, .AI em Pink Wine) */
+    /* 2. Título Centralizado */
+    .logo-container {
+        text-align: center;
+        padding: 20px 0;
+    }
+
     .logo-text {
         font-family: 'Playfair Display', serif;
-        font-size: 3.5rem;
-        font-weight: 800;
-        text-align: center;
-        margin-bottom: 0px;
+        font-size: 5rem;
+        font-weight: 900;
+        margin-bottom: 0;
+        line-height: 1;
     }
-    .harmoniz { color: #F4C430; }
-    .ai-suffix { color: #EE1C5B; }
 
-    /* 3. Textos menores e labels em branco para contraste */
+    /* AMARELO OURO para 'Harmoniz' */
+    .harmoniz {
+        color: #F1C40F;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    /* VERMELHO BRILHANTE para '.AI' e Tagline */
+    .ai-suffix, .tagline {
+        color: #FF0033 !important;
+        text-transform: uppercase;
+    }
+
+    .tagline {
+        font-family: 'Montserrat', sans-serif;
+        letter-spacing: 4px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        margin-top: 10px;
+        opacity: 1;
+    }
+
+    /* 3. Textos do Chat e Labels */
     .stMarkdown, p, span, label {
         color: #FFFFFF !important;
+        font-family: 'Montserrat', sans-serif;
     }
 
-    /* 4. Barra Lateral (Sidebar) em tom mais escuro */
-    [data-testid="stSidebar"] {
-        background-color: #4A1F24;
-        border-right: 1px solid #EE1C5B;
-    }
-
-    /* 5. Customização das Mensagens do Chat */
+    /* Balões de Chat Elegantes */
     [data-testid="stChatMessage"] {
-        background-color: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        border: 1px solid rgba(238, 28, 91, 0.3);
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border-radius: 20px;
+        border: 1px solid #FF0033;
     }
 
+    /* 4. Imagem do Logo (Selo Circular) */
+    .hero-img {
+        display: block;
+        margin: 0 auto 15px auto;
+        width: 140px;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid #F1C40F;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+    }
+
+    /* 5. Sidebar e botões mantêm coerência luxuosa */
+    [data-testid="stSidebar"] {
+        background-color: #3D0A13 !important;
+        border-right: 1px solid #FF0033;
+    }
+
+    .stButton>button {
+        background-color: transparent;
+        color: #F1C40F !important;
+        border: 2px solid #F1C40F !important;
+        border-radius: 30px;
+        font-weight: 600;
+        transition: 0.3s;
+    }
+
+    .stButton>button:hover {
+        background-color: #F1C40F;
+        color: #5D101D !important;
+    }
+
+    /* 6. Badges do modo */
     .mode-badge {
         display: inline-block;
         padding: 0.35rem 1.2rem;
@@ -155,17 +207,19 @@ st.markdown(
         font-weight: 600;
         border: 1px solid rgba(255, 255, 255, 0.3);
     }
+
     .mode-chat { background-color: rgba(244, 196, 48, 0.15); color: #F4C430; }
-    .mode-agent { background-color: rgba(238, 28, 91, 0.15); color: #EE1C5B; }
+    .mode-agent { background-color: rgba(255, 0, 51, 0.15); color: #FF0033; }
     .mode-judge { background-color: rgba(255, 255, 255, 0.15); color: #FFFFFF; }
     </style>
 
-    <div class="logo-text">
-        <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
+    <div class="logo-container">
+        <img src="https://github.com/vdfs89/Harmoniz.AI/raw/main/image_fe2a58.jpg" class="hero-img">
+        <h1 class="logo-text">
+            <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
+        </h1>
+        <p class="tagline">Sommelier Digital — Inteligência Wine.com.br</p>
     </div>
-    <p style="text-align: center; color: white; font-style: italic;">
-        Sommelier Digital — Seu guia de vinhos inteligente
-    </p>
     """,
     unsafe_allow_html=True,
 )

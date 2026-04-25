@@ -181,6 +181,22 @@ Solução:
 
 ---
 
+**❌ ERRO: "ImportError" ao criar o Agent (linha 253)**
+
+Causa: Dependências do LangChain Agent não instaladas (ex.: langchain-chroma) OU o diretório da base vetorial não existe no servidor.
+Solução:
+  1. Garanta que o `requirements.txt` contém:
+     - langchain>=0.3.0
+     - langchain-community>=0.3.0
+     - langchain-openai>=0.2.0
+     - langchain-google-genai
+     - langchain-chroma
+  2. No Streamlit Cloud, rode `pip install -r requirements.txt` automaticamente ao redeploy.
+  3. Em **Settings → Secrets**, defina `VECTOR_DB_PATH` = "data/processed/chroma_db" e `GEMINI_API_KEY` (obrigatório para o Agent usar ferramentas Google).
+  4. Faça push da pasta `data/processed/chroma_db/` ou execute `python src/engine/ingest.py` antes do deploy para que o caminho exista.
+
+---
+
 **❌ ERRO: "OPENAI_API_KEY is not set" ou "OpenAIError: Incorrect API key"**
 
 Causa: Secret não foi configurado ou valor está errado
