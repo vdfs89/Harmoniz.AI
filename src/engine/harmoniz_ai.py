@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 from dotenv import load_dotenv
 import langchain_core.retrievers as _lc_retrievers
@@ -19,7 +19,21 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 # 1. Configuracoes iniciais
 load_dotenv()
-persist_directory = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
+
+
+def _resolve_vector_db_path() -> str:
+    default_path = "data/processed/chroma_db"
+    try:
+        import streamlit as st  # type: ignore
+
+        secret_path = st.secrets.get("VECTOR_DB_PATH")
+    except Exception:  # pragma: no cover - streamlit indisponivel em testes
+        secret_path = None
+
+    return secret_path or os.getenv("VECTOR_DB_PATH", default_path)
+
+
+persist_directory = _resolve_vector_db_path()
 chat_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
@@ -137,8 +151,8 @@ PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 
-# 4. Modelo principal
-llm = ChatOpenAI(model=chat_model, temperature=0.2)
+# 4. Modelo principal (streaming habilitado)
+llm = ChatOpenAI(model=chat_model, temperature=0.2, streaming=True)
 
 
 def _build_retriever_with_filters(question: str):
@@ -193,6 +207,14 @@ def _build_lcel_chain(question: str):
     return chain, retriever, filters_applied
 
 
+def _fetch_docs(retriever, pergunta: str) -> list[Document]:
+    if hasattr(retriever, "invoke"):
+        return retriever.invoke(pergunta)
+    if hasattr(retriever, "get_relevant_documents"):
+        return retriever.get_relevant_documents(pergunta)
+    return []
+
+
 def perguntar_ao_sommelier(pergunta: str) -> Dict[str, Any]:
     """
     Interface publica que mantém compatibilidade com o codigo anterior,
@@ -200,22 +222,31 @@ def perguntar_ao_sommelier(pergunta: str) -> Dict[str, Any]:
     """
     chain, retriever, filters_applied = _build_lcel_chain(pergunta)
 
-    # Executa a chain LCEL (entrada deve ser apenas a pergunta)
     resposta_texto = chain.invoke(pergunta)
-
-    # Recupera tambem os documentos para exibicao (API nova do LangChain 0.2/0.3)
-    if hasattr(retriever, "invoke"):
-        docs = retriever.invoke(pergunta)
-    elif hasattr(retriever, "get_relevant_documents"):
-        docs = retriever.get_relevant_documents(pergunta)
-    else:
-        docs = []
+    docs = _fetch_docs(retriever, pergunta)
 
     return {
         "result": resposta_texto,
         "source_documents": docs,
         "filters_applied": filters_applied,
     }
+
+
+def stream_rag_response(
+    pergunta: str,
+) -> Tuple[Iterable[str], list[str], Callable[[], list[Document]]]:
+    """Retorna iterador streaming + filtros + callable para buscar documentos."""
+
+    chain, retriever, filters_applied = _build_lcel_chain(pergunta)
+
+    def _stream() -> Iterable[str]:
+        for chunk in chain.stream(pergunta):
+            yield chunk
+
+    def _docs_loader():
+        return _fetch_docs(retriever, pergunta)
+
+    return _stream(), filters_applied, _docs_loader
 
 
 def main() -> None:

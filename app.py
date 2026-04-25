@@ -5,17 +5,30 @@ Identidade visual fiel à marca: cores, tipografia e estética exatas.
 """
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict, Iterable, Optional
+from uuid import uuid4
 
+import psycopg2
 import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
+def _get_secret(key: str, default: Optional[str] = None) -> Optional[str]:
+    try:
+        value = st.secrets.get(key)
+    except Exception:  # pragma: no cover - secrets indisponivel localmente
+        value = None
+    return value if value not in (None, "") else os.getenv(key, default)
+
+
 # ─────────────────────────────────────────────────────────────
 # PRÉ-REQUISITO: garante base vetorial antes de qualquer import
 # ─────────────────────────────────────────────────────────────
-VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
+VECTOR_DB_PATH = _get_secret("VECTOR_DB_PATH", "data/processed/chroma_db")
+DB_URL = _get_secret("DB_URL")
+APP_PASSWORD = _get_secret("APP_PASSWORD")
+MAX_MESSAGES = 10
 
 
 def _ensure_vector_db_ready() -> None:
@@ -44,9 +57,9 @@ _ensure_vector_db_ready()
 # ─────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def _load_sommelier():
-    from src.engine.harmoniz_ai import perguntar_ao_sommelier
+    from src.engine.harmoniz_ai import perguntar_ao_sommelier, stream_rag_response
 
-    return perguntar_ao_sommelier
+    return perguntar_ao_sommelier, stream_rag_response
 
 
 @st.cache_resource(show_spinner=False)
@@ -66,19 +79,25 @@ def _load_judge():
     return ask_with_judge
 
 
-def _load_engines() -> tuple[Any, Any, Any, Any]:
+def _load_engines() -> tuple[Any, Any, Any, Any, Any]:
     try:
-        sommelier = _load_sommelier()
+        sommelier, rag_stream = _load_sommelier()
         agent_executor, agent_error = _load_agent()
         judge = _load_judge()
     except ImportError as exc:  # pragma: no cover - erro fatal
         st.error(f"❌ Erro ao carregar módulos: {exc}")
         st.stop()
 
-    return sommelier, agent_executor, agent_error, judge
+    return sommelier, rag_stream, agent_executor, agent_error, judge
 
 
-perguntar_ao_sommelier, _agent_executor, _agent_error, ask_with_judge = _load_engines()
+(
+    perguntar_ao_sommelier,
+    stream_rag_response,
+    _agent_executor,
+    _agent_error,
+    ask_with_judge,
+) = _load_engines()
 
 # ─────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO DA PÁGINA
@@ -320,6 +339,19 @@ hr {
     color: #C9A870 !important;
 }
 
+/* ── PASSWORD FIELD ── */
+input[type="password"] {
+    background: rgba(61, 0, 16, 0.7) !important;
+    border: 1px solid rgba(201, 168, 112, 0.45) !important;
+    border-radius: 12px !important;
+    color: #F2E8D4 !important;
+    padding: 0.75rem 1rem !important;
+}
+input[type="password"]::placeholder {
+    color: rgba(242, 232, 212, 0.6) !important;
+    letter-spacing: 0.5px;
+}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: #1A0008; }
@@ -329,6 +361,64 @@ hr {
 
 st.markdown(DESIGN_CSS, unsafe_allow_html=True)
 
+
+def save_chat_history(session_id: str, user_prompt: str, ai_answer: str, mode: str) -> None:
+    if not DB_URL:
+        return
+
+    try:
+        with psycopg2.connect(DB_URL) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS chat_history (
+                        id SERIAL PRIMARY KEY,
+                        session_id TEXT,
+                        user_prompt TEXT,
+                        ai_answer TEXT,
+                        mode TEXT,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                    """
+                )
+                cur.execute(
+                    """
+                    INSERT INTO chat_history (session_id, user_prompt, ai_answer, mode)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (session_id, user_prompt, ai_answer, mode),
+                )
+    except Exception as exc:  # noqa: BLE001
+        st.session_state["db_error"] = str(exc)
+
+
+def check_password() -> bool:
+    if not APP_PASSWORD:
+        return True
+    if st.session_state.get("password_ok"):
+        return True
+
+    password = st.text_input(
+        "Senha de acesso",
+        type="password",
+        placeholder="Passe exclusivo Harmoniz.AI",
+        help="Informe a senha compartilhada pelo time para liberar o app.",
+    )
+
+    if not password:
+        return False
+
+    if password == APP_PASSWORD:
+        st.session_state.password_ok = True
+        return True
+
+    st.error("Senha incorreta. Tente novamente.")
+    return False
+
+
+if not check_password():
+    st.stop()
+
 # ─────────────────────────────────────────────────────────────
 # ESTADO DA SESSÃO
 # ─────────────────────────────────────────────────────────────
@@ -336,6 +426,10 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "show_metrics" not in st.session_state:
     st.session_state.show_metrics = False
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid4())
+if "user_message_count" not in st.session_state:
+    st.session_state.user_message_count = 0
 
 # ─────────────────────────────────────────────────────────────
 # SIDEBAR
@@ -439,6 +533,11 @@ else:
 
 st.markdown(f'<div class="hm-mode-wrap">{badge_html}</div>', unsafe_allow_html=True)
 
+if st.session_state.get("db_error"):
+    st.info(
+        "💾 Persistência temporariamente offline. Suas mensagens continuam funcionando normalmente."
+    )
+
 # ─────────────────────────────────────────────────────────────
 # HISTÓRICO DE MENSAGENS
 # ─────────────────────────────────────────────────────────────
@@ -457,11 +556,17 @@ for message in st.session_state.messages:
 # ─────────────────────────────────────────────────────────────
 # INPUT & PROCESSAMENTO
 # ─────────────────────────────────────────────────────────────
-prompt = st.chat_input(
-    placeholder="Como posso ajudar o seu paladar? (ex: vinho para risoto de cogumelos...)",
-)
+limit_reached = st.session_state.user_message_count >= MAX_MESSAGES
+if limit_reached:
+    st.warning("Limite de 10 mensagens atingido. Recarregue a página para iniciar nova sessão.")
+    prompt = None
+else:
+    prompt = st.chat_input(
+        placeholder="Como posso ajudar o seu paladar? (ex: vinho para risoto de cogumelos...)",
+    )
 
 if prompt:
+    st.session_state.user_message_count += 1
     st.session_state.messages.append({"role": "user", "content": prompt, "metadata": None})
     with st.chat_message("user", avatar="🧑‍💼"):
         st.markdown(prompt)
@@ -472,27 +577,42 @@ if prompt:
                 metadata: Dict[str, Any] = {}
 
                 if "Chat RAG" in modo:
-                    resultado = perguntar_ao_sommelier(prompt)
-                    resposta = resultado["result"]
-                    st.markdown(resposta)
+                    resposta = ""
+                    filtros_aplicados: list[str] = []
+                    docs = []
+                    response_placeholder = st.empty()
 
-                    if resultado.get("filters_applied"):
-                        st.info(f"🔍 Filtros: {' · '.join(resultado['filters_applied'])}")
-                        metadata["Filtros"] = resultado["filters_applied"]
+                    try:
+                        stream_iter, filtros_aplicados, docs_loader = stream_rag_response(
+                            prompt
+                        )
+                        for chunk in stream_iter:
+                            resposta += chunk
+                            response_placeholder.markdown(resposta or "▌")
+                        docs = docs_loader()
+                        if not resposta:
+                            resposta = "Sem resposta gerada."
+                            response_placeholder.markdown(resposta)
+                    except Exception:
+                        resultado = perguntar_ao_sommelier(prompt)
+                        resposta = resultado["result"]
+                        response_placeholder.markdown(resposta)
+                        filtros_aplicados = resultado.get("filters_applied", [])
+                        docs = resultado.get("source_documents", [])
 
-                    if resultado.get("source_documents"):
-                        with st.expander(
-                            f"📚 {len(resultado['source_documents'])} rótulos analisados"
-                        ):
-                            for doc in resultado["source_documents"]:
+                    if filtros_aplicados:
+                        st.info(f"🔍 Filtros: {' · '.join(filtros_aplicados)}")
+                        metadata["Filtros"] = filtros_aplicados
+
+                    if docs:
+                        with st.expander(f"📚 {len(docs)} rótulos analisados"):
+                            for doc in docs:
                                 nome = doc.metadata.get("nome", "—")
                                 tipo = doc.metadata.get("tipo", "")
                                 pais = doc.metadata.get("pais", "")
                                 preco = doc.metadata.get("preco", "—")
                                 st.write(f"**{nome}** · {tipo} · {pais} · R$ {preco}")
-                        metadata["Fontes"] = [
-                            doc.metadata.get("nome") for doc in resultado["source_documents"]
-                        ]
+                        metadata["Fontes"] = [doc.metadata.get("nome") for doc in docs]
                     metadata["Modo"] = "Chat RAG"
 
                 elif "Agente" in modo:
@@ -532,6 +652,7 @@ if prompt:
                                     st.caption(resposta_modelo[:200] + "…")
 
                     metadata = {
+                        "Modo": "Juiz",
                         "Vencedor": winner,
                         "Razão": reason,
                         "Modelos": list(resultado.get("all_answers", {}).keys()),
@@ -539,6 +660,12 @@ if prompt:
 
                 st.session_state.messages.append(
                     {"role": "assistant", "content": resposta, "metadata": metadata}
+                )
+                save_chat_history(
+                    st.session_state.session_id,
+                    prompt,
+                    resposta,
+                    metadata.get("Modo", modo),
                 )
 
             except Exception as exc:  # noqa: BLE001

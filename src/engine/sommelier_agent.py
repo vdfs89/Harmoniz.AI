@@ -68,8 +68,21 @@ except ImportError as exc:
 
 load_dotenv()
 
+
+def _resolve_vector_db_path() -> str:
+    default_path = "data/processed/chroma_db"
+    try:
+        import streamlit as st  # type: ignore
+
+        secret_path = st.secrets.get("VECTOR_DB_PATH")
+    except Exception:  # pragma: no cover
+        secret_path = None
+
+    return secret_path or os.getenv("VECTOR_DB_PATH", default_path)
+
+
 # Configuracoes
-persist_directory = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
+persist_directory = _resolve_vector_db_path()
 chat_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 _VECTOR_DB: Optional[Chroma] = None
 _AGENT_EXECUTOR_CLS, _AGENT_FACTORY = _resolve_agent_factory()
@@ -275,13 +288,13 @@ def criar_sommelier_agent():
             " instalado e atualizado."
         ) from _MEMORY_IMPORT_ERROR
 
-    db_path = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
+    db_path = persist_directory
     if not os.path.exists(db_path):
         raise FileNotFoundError(
             f"ChromaDB não encontrado em: {db_path}. Execute ingestão antes do modo Agente."
         )
 
-    llm = ChatOpenAI(model=chat_model, temperature=0.2)
+    llm = ChatOpenAI(model=chat_model, temperature=0.2, streaming=True)
 
     # Define as ferramentas disponiveis
     tools = [
