@@ -12,7 +12,7 @@ Streamlit Cloud: https://harmonizai.streamlit.app/
 """
 
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -22,7 +22,8 @@ from src.engine.ingest import ingest_data
 load_dotenv()
 
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
-HERO_IMAGE_PATH = "img/ChatGPT Image 24 de abr. de 2026, 21_52_30.png"
+DEFAULT_HERO_IMAGE = "img/ChatGPT Image 24 de abr. de 2026, 21_52_30.png"
+PREFERRED_HERO_IMAGE = os.getenv("HERO_IMAGE_PATH", "image_fe97d0.jpg")
 
 
 def _ensure_vector_db_ready() -> None:
@@ -48,14 +49,42 @@ def _ensure_vector_db_ready() -> None:
 _ensure_vector_db_ready()
 
 
+def _resolve_hero_image_path() -> Optional[str]:
+    candidates: list[str] = []
+
+    base_candidate = PREFERRED_HERO_IMAGE.strip() if PREFERRED_HERO_IMAGE else ""
+    if base_candidate:
+        candidates.append(base_candidate)
+        basename = os.path.basename(base_candidate)
+        if basename and basename != base_candidate:
+            candidates.append(basename)
+        if basename:
+            candidates.append(os.path.join("img", basename))
+
+    candidates.append(DEFAULT_HERO_IMAGE)
+
+    seen: set[str] = set()
+    for path in candidates:
+        if not path:
+            continue
+        normalized = os.path.normpath(path)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        if os.path.exists(normalized):
+            return normalized
+    return None
+
+
 def _render_hero_banner() -> None:
-    if not os.path.exists(HERO_IMAGE_PATH):
+    hero_path = _resolve_hero_image_path()
+    if not hero_path:
         return
 
     st.image(
-        HERO_IMAGE_PATH,
+        hero_path,
         caption="Harmoniz.AI — Adega Generativa",
-        use_column_width=True,
+        use_container_width=True,
     )
 
 
@@ -79,71 +108,64 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS
+# Custom CSS + Identidade Visual
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&display=swap');
 
-    .main { padding-top: 2rem; }
+    /* 1. Fundo da Página Total (Bordô Profundo) */
+    .stApp {
+        background-color: #722F37;
+    }
 
-    /* Título principal no Bordô Profundo */
-    h1 {
-        color: #722F37 !important;
+    /* 2. Título Principal (Harmoniz em Amarelo, .AI em Pink Wine) */
+    .logo-text {
         font-family: 'Playfair Display', serif;
-        font-weight: 700;
+        font-size: 3.5rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 0px;
+    }
+    .harmoniz { color: #F4C430; }
+    .ai-suffix { color: #EE1C5B; }
+
+    /* 3. Textos menores e labels em branco para contraste */
+    .stMarkdown, p, span, label {
+        color: #FFFFFF !important;
     }
 
-    /* Subtítulos no Pink Wine Intenso */
-    h2, h3 {
-        color: #EE1C5B !important;
-    }
-
-    /* Estilização dos Balões de Chat */
-    [data-testid="stChatMessage"] {
-        border-radius: 15px;
-        margin-bottom: 10px;
-    }
-
-    /* Ajuste na cor de fundo das mensagens do Assistente */
-    [data-testid="stChatMessage"]:nth-child(even) {
-        background-color: #F8F9FA;
-        border-left: 5px solid #722F37;
-    }
-
-    /* Botões personalizados */
-    .stButton>button {
-        border-radius: 20px;
-        background-color: #FFFFFF;
-        color: #EE1C5B;
-        border: 2px solid #EE1C5B;
-        font-weight: bold;
-        transition: 0.3s;
-    }
-
-    .stButton>button:hover {
-        background-color: #EE1C5B;
-        color: #FFFFFF;
-        box-shadow: 0 4px 12px rgba(238, 28, 91, 0.3);
-    }
-
-    /* Sidebar */
+    /* 4. Barra Lateral (Sidebar) em tom mais escuro */
     [data-testid="stSidebar"] {
-        border-right: 1px solid #e0e0e0;
+        background-color: #4A1F24;
+        border-right: 1px solid #EE1C5B;
+    }
+
+    /* 5. Customização das Mensagens do Chat */
+    [data-testid="stChatMessage"] {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        border: 1px solid rgba(238, 28, 91, 0.3);
     }
 
     .mode-badge {
         display: inline-block;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: bold;
-        margin: 0.5rem 0;
+        padding: 0.35rem 1.2rem;
+        border-radius: 999px;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.3);
     }
-
-    .mode-chat { background-color: #d4edda; color: #155724; }
-    .mode-agent { background-color: #d1ecf1; color: #0c5460; }
-    .mode-judge { background-color: #fff3cd; color: #856404; }
+    .mode-chat { background-color: rgba(244, 196, 48, 0.15); color: #F4C430; }
+    .mode-agent { background-color: rgba(238, 28, 91, 0.15); color: #EE1C5B; }
+    .mode-judge { background-color: rgba(255, 255, 255, 0.15); color: #FFFFFF; }
     </style>
+
+    <div class="logo-text">
+        <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
+    </div>
+    <p style="text-align: center; color: white; font-style: italic;">
+        Sommelier Digital — Seu guia de vinhos inteligente
+    </p>
     """,
     unsafe_allow_html=True,
 )

@@ -200,8 +200,8 @@ def perguntar_ao_sommelier(pergunta: str) -> Dict[str, Any]:
     """
     chain, retriever, filters_applied = _build_lcel_chain(pergunta)
 
-    # Executa a chain LCEL
-    resposta_texto = chain.invoke({"context": retriever, "question": pergunta})
+    # Executa a chain LCEL (entrada deve ser apenas a pergunta)
+    resposta_texto = chain.invoke(pergunta)
 
     # Recupera tambem os documentos para exibicao
     docs = retriever.get_relevant_documents(pergunta)
