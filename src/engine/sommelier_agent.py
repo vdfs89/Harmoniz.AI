@@ -19,7 +19,10 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_community.vectorstores import Chroma
+try:
+    from langchain_chroma import Chroma
+except ImportError:  # pragma: no cover - fallback para versões antigas
+    from langchain_community.vectorstores import Chroma
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
@@ -260,6 +263,12 @@ def criar_sommelier_agent():
             "Modulo langchain.memory ausente. Garanta que o pacote 'langchain' está"
             " instalado e atualizado."
         ) from _MEMORY_IMPORT_ERROR
+
+    db_path = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(
+            f"ChromaDB não encontrado em: {db_path}. Execute ingestão antes do modo Agente."
+        )
 
     llm = ChatOpenAI(model=chat_model, temperature=0.2)
 

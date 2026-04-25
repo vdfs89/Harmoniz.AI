@@ -73,34 +73,37 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;600&display=swap');
 
-    /* 1. Fundo da Página Total */
+    /* 1. Fundo Geral e Sidebar */
     .stApp {
         background-color: #5D101D;
     }
 
-    /* 2. Sidebar customizada */
     [data-testid="stSidebar"] {
         background-color: #3D0A13 !important;
         border-right: 2px solid #FF0033;
     }
 
-    .sidebar-logo-text {
+    /* 2. Tipografia / cores */
+    .harmoniz-brand {
         font-family: 'Playfair Display', serif;
-        font-size: 2rem;
         font-weight: 900;
-        text-align: center;
-        line-height: 1.2;
-        margin-bottom: 20px;
+        line-height: 1;
     }
 
-    /* 3. Identidade de cores */
-    .harmoniz {
+    .gold {
         color: #F1C40F;
-        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
-    .ai-suffix {
+    .red {
         color: #FF0033 !important;
+    }
+
+    /* 3. Sidebar */
+    .sidebar-title {
+        font-size: 1.8rem;
+        text-align: center;
+        margin-bottom: 5px;
     }
 
     [data-testid="stSidebar"] .stMarkdown,
@@ -111,17 +114,14 @@ st.markdown(
     }
 
     /* 4. Cabeçalho principal */
-    .logo-container {
+    .main-header {
         text-align: center;
-        padding: 10px 0 30px 0;
+        padding: 20px 0;
     }
 
     .main-logo-text {
-        font-family: 'Playfair Display', serif;
         font-size: 5rem;
-        font-weight: 900;
         margin-bottom: 0;
-        line-height: 1;
     }
 
     .tagline {
@@ -131,32 +131,39 @@ st.markdown(
         font-weight: 600;
         font-size: 0.8rem;
         text-transform: uppercase;
+        margin-top: 10px;
     }
 
-    /* 5. Conteúdo principal */
-    .stMarkdown, p, span, label {
-        color: #FFFFFF !important;
-        font-family: 'Montserrat', sans-serif;
-    }
-
+    /* 5. Balões de chat */
     [data-testid="stChatMessage"] {
         background-color: rgba(255, 255, 255, 0.05) !important;
         border-radius: 20px;
         border: 1px solid #FF0033;
     }
 
-    .hero-img {
-        display: block;
-        margin: 0 auto 15px auto;
-        width: 120px;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 50%;
-        border: 3px solid #F1C40F;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+    .stMarkdown p,
+    .stMarkdown span,
+    .stMarkdown label,
+    p,
+    span,
+    label {
+        color: #FFFFFF !important;
+        font-family: 'Montserrat', sans-serif;
     }
 
-    /* 6. Botões e badges */
+    /* 6. Selo circular */
+    .hero-selo {
+        display: block;
+        margin: 0 auto 15px auto;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 3px solid #F1C40F;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+        object-fit: cover;
+    }
+
+    /* 7. Botões e badges */
     .stButton>button {
         background-color: transparent;
         color: #F1C40F !important;
@@ -199,9 +206,9 @@ st.markdown(
 with st.sidebar:
     st.markdown(
         """
-        <div class="sidebar-logo-text">
-            <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
-            <p style="font-size: 0.7rem; color: #FFFFFF; letter-spacing: 2px; font-weight:300;">
+        <div class="harmoniz-brand sidebar-title">
+            <span class="gold">Harmoniz</span><span class="red">.AI</span>
+            <p style="font-size: 0.7rem; color: #FFFFFF; letter-spacing: 2px; font-weight:300; margin-top:5px;">
                 CONFIGURAÇÕES
             </p>
         </div>
@@ -326,10 +333,10 @@ if (
 
 st.markdown(
     """
-    <div class="logo-container">
-        <img src="https://github.com/vdfs89/Harmoniz.AI/raw/main/image_fe2a58.jpg" class="hero-img">
-        <h1 class="main-logo-text">
-            <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
+    <div class="main-header">
+        <img src="https://github.com/vdfs89/Harmoniz.AI/raw/main/image_fe2a58.jpg" class="hero-selo">
+        <h1 class="harmoniz-brand main-logo-text">
+            <span class="gold">Harmoniz</span><span class="red">.AI</span>
         </h1>
         <p class="tagline">Sommelier Digital — Inteligência Wine.com.br</p>
     </div>
