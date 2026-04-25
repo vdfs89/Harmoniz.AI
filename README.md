@@ -1,6 +1,4 @@
-﻿![Harmoniz.AI](img/Gemini_Generated_Image_xazn0vxazn0vxazn.png)
-
-![Harmoniz.AI Banner](img/Gemini_Generated_Image_a7l9bqa7l9bqa7l9.png)
+﻿![Harmoniz.AI](img/ChatGPT Image 24 de abr. de 2026, 21_52_30.png)
 
 # Harmoniz.AI
 

@@ -22,7 +22,7 @@ from src.engine.ingest import ingest_data
 load_dotenv()
 
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
-HERO_IMAGE_PATH = "img/Gemini_Generated_Image_a7l9bqa7l9bqa7l9.png"
+HERO_IMAGE_PATH = "img/ChatGPT Image 24 de abr. de 2026, 21_52_30.png"
 
 
 def _ensure_vector_db_ready() -> None:
@@ -83,17 +83,63 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+
     .main { padding-top: 2rem; }
-    .stChatMessage { border-radius: 10px; }
-    .sommelier-message { background-color: #f0f8ff; }
-    h1 { color: #722f37; font-family: 'Georgia', serif; }
-    .mode-badge { 
+
+    /* Título principal no Bordô Profundo */
+    h1 {
+        color: #722F37 !important;
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+    }
+
+    /* Subtítulos no Pink Wine Intenso */
+    h2, h3 {
+        color: #EE1C5B !important;
+    }
+
+    /* Estilização dos Balões de Chat */
+    [data-testid="stChatMessage"] {
+        border-radius: 15px;
+        margin-bottom: 10px;
+    }
+
+    /* Ajuste na cor de fundo das mensagens do Assistente */
+    [data-testid="stChatMessage"]:nth-child(even) {
+        background-color: #F8F9FA;
+        border-left: 5px solid #722F37;
+    }
+
+    /* Botões personalizados */
+    .stButton>button {
+        border-radius: 20px;
+        background-color: #FFFFFF;
+        color: #EE1C5B;
+        border: 2px solid #EE1C5B;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    .stButton>button:hover {
+        background-color: #EE1C5B;
+        color: #FFFFFF;
+        box-shadow: 0 4px 12px rgba(238, 28, 91, 0.3);
+    }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        border-right: 1px solid #e0e0e0;
+    }
+
+    .mode-badge {
         display: inline-block;
         padding: 0.5rem 1rem;
         border-radius: 20px;
         font-weight: bold;
         margin: 0.5rem 0;
     }
+
     .mode-chat { background-color: #d4edda; color: #155724; }
     .mode-agent { background-color: #d1ecf1; color: #0c5460; }
     .mode-judge { background-color: #fff3cd; color: #856404; }
