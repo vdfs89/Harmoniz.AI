@@ -447,6 +447,10 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
+    # Botão DB Monitor (PgHero-lite)
+    if st.button("🔍 DB Monitor (PgHero-lite)", use_container_width=True):
+        st.session_state.show_pghero = not st.session_state.get("show_pghero", False)
+
     st.markdown("##### Modo de Operação")
     modo = st.radio(
         label="",
@@ -507,6 +511,39 @@ with st.sidebar:
     """,
         unsafe_allow_html=True,
     )
+
+    if st.session_state.get("show_pghero"):
+        st.markdown("### 📊 Monitor de Banco (PgHero-lite)")
+        try:
+            import pandas as pd
+            conn = psycopg2.connect(DB_URL)
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT relname AS "Tabela",
+                       pg_size_pretty(pg_total_relation_size(relid)) AS "Tamanho Total"
+                FROM pg_catalog.pg_statio_user_tables
+                ORDER BY pg_total_relation_size(relid) DESC;
+                """
+            )
+            df_size = pd.DataFrame(cur.fetchall(), columns=["Tabela","Tamanho Total"])
+            cur.execute(
+                "SELECT created_at, user_prompt, mode FROM chat_history ORDER BY created_at DESC LIMIT 5;"
+            )
+            df_recent = pd.DataFrame(cur.fetchall(), columns=["Data","Último Prompt","Modo"])
+            cur.close()
+            conn.close()
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**📦 Tamanho das Tabelas**")
+                st.dataframe(df_size, hide_index=True)
+            with col2:
+                st.write("**💬 Últimas Interações**")
+                st.dataframe(df_recent, hide_index=True)
+        except Exception as exc:
+            st.error(f"Erro ao conectar ao monitor: {exc}")
+            st.session_state.show_pghero = False
+
 
 # ─────────────────────────────────────────────────────────────
 # HEADER PRINCIPAL
