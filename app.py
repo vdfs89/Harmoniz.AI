@@ -12,7 +12,7 @@ Streamlit Cloud: https://harmonizai.streamlit.app/
 """
 
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -22,8 +22,6 @@ from src.engine.ingest import ingest_data
 load_dotenv()
 
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
-DEFAULT_HERO_IMAGE = "img/ChatGPT Image 24 de abr. de 2026, 21_52_30.png"
-PREFERRED_HERO_IMAGE = os.getenv("HERO_IMAGE_PATH", "image_fe97d0.jpg")
 
 
 def _ensure_vector_db_ready() -> None:
@@ -47,45 +45,6 @@ def _ensure_vector_db_ready() -> None:
 
 
 _ensure_vector_db_ready()
-
-
-def _resolve_hero_image_path() -> Optional[str]:
-    candidates: list[str] = []
-
-    base_candidate = PREFERRED_HERO_IMAGE.strip() if PREFERRED_HERO_IMAGE else ""
-    if base_candidate:
-        candidates.append(base_candidate)
-        basename = os.path.basename(base_candidate)
-        if basename and basename != base_candidate:
-            candidates.append(basename)
-        if basename:
-            candidates.append(os.path.join("img", basename))
-
-    candidates.append(DEFAULT_HERO_IMAGE)
-
-    seen: set[str] = set()
-    for path in candidates:
-        if not path:
-            continue
-        normalized = os.path.normpath(path)
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        if os.path.exists(normalized):
-            return normalized
-    return None
-
-
-def _render_hero_banner() -> None:
-    hero_path = _resolve_hero_image_path()
-    if not hero_path:
-        return
-
-    st.image(
-        hero_path,
-        caption="Harmoniz.AI — Adega Generativa",
-        use_container_width=True,
-    )
 
 
 # Imports dos 3 modos
@@ -114,18 +73,50 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;600&display=swap');
 
-    /* 1. Fundo da Página (Bordô Profundo da Imagem) */
+    /* 1. Fundo da Página Total */
     .stApp {
         background-color: #5D101D;
     }
 
-    /* 2. Título Centralizado */
-    .logo-container {
-        text-align: center;
-        padding: 20px 0;
+    /* 2. Sidebar customizada */
+    [data-testid="stSidebar"] {
+        background-color: #3D0A13 !important;
+        border-right: 2px solid #FF0033;
     }
 
-    .logo-text {
+    .sidebar-logo-text {
+        font-family: 'Playfair Display', serif;
+        font-size: 2rem;
+        font-weight: 900;
+        text-align: center;
+        line-height: 1.2;
+        margin-bottom: 20px;
+    }
+
+    /* 3. Identidade de cores */
+    .harmoniz {
+        color: #F1C40F;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    }
+
+    .ai-suffix {
+        color: #FF0033 !important;
+    }
+
+    [data-testid="stSidebar"] .stMarkdown,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p {
+        color: #FFFFFF !important;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    /* 4. Cabeçalho principal */
+    .logo-container {
+        text-align: center;
+        padding: 10px 0 30px 0;
+    }
+
+    .main-logo-text {
         font-family: 'Playfair Display', serif;
         font-size: 5rem;
         font-weight: 900;
@@ -133,58 +124,39 @@ st.markdown(
         line-height: 1;
     }
 
-    /* AMARELO OURO para 'Harmoniz' */
-    .harmoniz {
-        color: #F1C40F;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
-    }
-
-    /* VERMELHO BRILHANTE para '.AI' e Tagline */
-    .ai-suffix, .tagline {
-        color: #FF0033 !important;
-        text-transform: uppercase;
-    }
-
     .tagline {
+        color: #FF0033 !important;
         font-family: 'Montserrat', sans-serif;
         letter-spacing: 4px;
         font-weight: 600;
         font-size: 0.8rem;
-        margin-top: 10px;
-        opacity: 1;
+        text-transform: uppercase;
     }
 
-    /* 3. Textos do Chat e Labels */
+    /* 5. Conteúdo principal */
     .stMarkdown, p, span, label {
         color: #FFFFFF !important;
         font-family: 'Montserrat', sans-serif;
     }
 
-    /* Balões de Chat Elegantes */
     [data-testid="stChatMessage"] {
         background-color: rgba(255, 255, 255, 0.05) !important;
         border-radius: 20px;
         border: 1px solid #FF0033;
     }
 
-    /* 4. Imagem do Logo (Selo Circular) */
     .hero-img {
         display: block;
         margin: 0 auto 15px auto;
-        width: 140px;
-        height: 140px;
+        width: 120px;
+        height: 120px;
         object-fit: cover;
         border-radius: 50%;
-        border: 4px solid #F1C40F;
+        border: 3px solid #F1C40F;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
     }
 
-    /* 5. Sidebar e botões mantêm coerência luxuosa */
-    [data-testid="stSidebar"] {
-        background-color: #3D0A13 !important;
-        border-right: 1px solid #FF0033;
-    }
-
+    /* 6. Botões e badges */
     .stButton>button {
         background-color: transparent;
         color: #F1C40F !important;
@@ -199,7 +171,11 @@ st.markdown(
         color: #5D101D !important;
     }
 
-    /* 6. Badges do modo */
+    .mode-badge-wrapper {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
     .mode-badge {
         display: inline-block;
         padding: 0.35rem 1.2rem;
@@ -212,14 +188,6 @@ st.markdown(
     .mode-agent { background-color: rgba(255, 0, 51, 0.15); color: #FF0033; }
     .mode-judge { background-color: rgba(255, 255, 255, 0.15); color: #FFFFFF; }
     </style>
-
-    <div class="logo-container">
-        <img src="https://github.com/vdfs89/Harmoniz.AI/raw/main/image_fe2a58.jpg" class="hero-img">
-        <h1 class="logo-text">
-            <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
-        </h1>
-        <p class="tagline">Sommelier Digital — Inteligência Wine.com.br</p>
-    </div>
     """,
     unsafe_allow_html=True,
 )
@@ -229,7 +197,17 @@ st.markdown(
 # ============================================================================
 
 with st.sidebar:
-    st.markdown("# ⚙️ Configurações")
+    st.markdown(
+        """
+        <div class="sidebar-logo-text">
+            <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
+            <p style="font-size: 0.7rem; color: #FFFFFF; letter-spacing: 2px; font-weight:300;">
+                CONFIGURAÇÕES
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.divider()
 
     # Seleção de modo
@@ -325,38 +303,51 @@ if "show_metrics" not in st.session_state:
     st.session_state.show_metrics = False
 
 if "agent_executor" not in st.session_state:
-    # Pre-carrega Agent pra evitar latência na primeira interação
-    if "Agente" in modo:
+    st.session_state.agent_executor = None
+
+if "agent_executor_error" not in st.session_state:
+    st.session_state.agent_executor_error = None
+
+if (
+    "Agente" in modo
+    and st.session_state.agent_executor is None
+    and not st.session_state.agent_executor_error
+):
+    try:
         st.session_state.agent_executor = criar_sommelier_agent()
+    except ImportError as exc:
+        st.session_state.agent_executor_error = str(exc)
+    except Exception as exc:  # noqa: BLE001
+        st.session_state.agent_executor_error = f"Falha ao iniciar o agent: {exc}"
 
 # ============================================================================
 # HEADER
 # ============================================================================
 
-col1, col2 = st.columns([3, 1])
-with col1:
-    st.markdown("# 🍷 Harmoniz.AI")
-    st.markdown("**Sommelier Digital** — Seu guia de vinhos inteligente da Wine.com.br")
+st.markdown(
+    """
+    <div class="logo-container">
+        <img src="https://github.com/vdfs89/Harmoniz.AI/raw/main/image_fe2a58.jpg" class="hero-img">
+        <h1 class="main-logo-text">
+            <span class="harmoniz">Harmoniz</span><span class="ai-suffix">.AI</span>
+        </h1>
+        <p class="tagline">Sommelier Digital — Inteligência Wine.com.br</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-with col2:
-    # Badge do modo
-    if "Chat RAG" in modo:
-        st.markdown(
-            '<span class="mode-badge mode-chat">💨 RÁPIDO</span>',
-            unsafe_allow_html=True,
-        )
-    elif "Agente" in modo:
-        st.markdown(
-            '<span class="mode-badge mode-agent">🤖 INTELIGENTE</span>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<span class="mode-badge mode-judge">🏆 PREMIUM</span>',
-            unsafe_allow_html=True,
-        )
+if "Chat RAG" in modo:
+    badge_html = '<span class="mode-badge mode-chat">💨 RÁPIDO</span>'
+elif "Agente" in modo:
+    badge_html = '<span class="mode-badge mode-agent">🤖 INTELIGENTE</span>'
+else:
+    badge_html = '<span class="mode-badge mode-judge">🏆 PREMIUM</span>'
 
-_render_hero_banner()
+st.markdown(
+    f'<div class="mode-badge-wrapper">{badge_html}</div>',
+    unsafe_allow_html=True,
+)
 
 st.divider()
 
@@ -444,22 +435,48 @@ if prompt:
                 # MODO 2: AGENT (COMPLETO)
                 # ============================================================
                 elif "Agente" in modo:
-                    # Cria ou recupera agent
-                    if "agent_executor" not in st.session_state:
-                        st.session_state.agent_executor = criar_sommelier_agent()
+                    if (
+                        st.session_state.agent_executor is None
+                        and not st.session_state.agent_executor_error
+                    ):
+                        try:
+                            st.session_state.agent_executor = criar_sommelier_agent()
+                        except ImportError as exc:
+                            st.session_state.agent_executor_error = str(exc)
+                        except Exception as exc:  # noqa: BLE001
+                            st.session_state.agent_executor_error = (
+                                f"Falha ao iniciar o agent: {exc}"
+                            )
 
-                    agent = st.session_state.agent_executor
-                    resultado = agent.invoke({"input": prompt})
-                    resposta = resultado["output"]
+                    if st.session_state.agent_executor is None:
+                        detalhe = st.session_state.agent_executor_error or (
+                            "Dependências do LangChain Agent indisponíveis."
+                        )
+                        resposta = (
+                            "❌ O modo Agente não pôde ser carregado neste deploy.\n\n"
+                            f"Detalhe técnico: {detalhe}\n"
+                            "Verifique se os pacotes `langchain`, `langchain-chroma`,\n"
+                            "`google-generativeai` e o `VECTOR_DB_PATH` estão corretos."
+                        )
+                        st.error(resposta)
+                        metadata = {
+                            "Modo": "Agent",
+                            "Status": "Indisponível",
+                            "Detalhe": detalhe,
+                        }
+                    else:
+                        agent = st.session_state.agent_executor
+                        resultado = agent.invoke({"input": prompt})
+                        resposta = resultado["output"]
 
-                    # Exibe resposta
-                    st.markdown(resposta)
+                        # Exibe resposta
+                        st.markdown(resposta)
 
-                    # Metadados
-                    metadata = {
-                        "Modo": "Agent",
-                        "Ferramentas": "🔍 Busca, 💰 Promoção, 📦 Estoque, 🍴 Harmonização",
-                    }
+                        # Metadados
+                        metadata = {
+                            "Modo": "Agent",
+                            "Ferramentas": "🔍 Busca, 💰 Promoção, 📦 Estoque, 🍴 Harmonização",
+                        }
 
                 # ============================================================
                 # MODO 3: JUDGE (MULTI-LLM)
