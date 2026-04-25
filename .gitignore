@@ -1,10 +1,26 @@
 venv/
 .env
 .ennv
+.env.local
+.env.*.local
 __pycache__/
+.mypy_cache/
 .ipynb_checkpoints/
 data/processed/*
+data/processed/chroma_db_legacy_*/
+data/processed/chroma_db_recovered_*/
 *.log
+
+# Chaves e certificados
+*.pem
+*.key
+*.p12
+*.pfx
+*.pub
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
 
 # Streamlit (secrets locais, não commitar)
 .streamlit/secrets.toml
@@ -13,6 +29,7 @@ data/processed/*
 # IDE
 .vscode/
 .idea/
+.vs/
 *.swp
 *.swo
 

@@ -23,14 +23,16 @@ def _load_wine_table(file_path: str):
         return pd.read_csv(file_path)
     if extension in {".xlsx", ".xls"}:
         return pd.read_excel(file_path)
-    raise ValueError(
-        "Formato nao suportado. Use um ficheiro .csv, .xlsx ou .xls."
-    )
+    raise ValueError("Formato nao suportado. Use um ficheiro .csv, .xlsx ou .xls.")
 
 
 def ingest_data():
-    data_path = os.getenv("WINE_DATA_PATH") or os.getenv("WINE_CSV_PATH")
-    persist_directory = os.getenv("VECTOR_DB_PATH")
+    data_path = (
+        os.getenv("WINE_DATA_PATH")
+        or os.getenv("WINE_CSV_PATH")
+        or "data/raw/wines_from_winecombr.xlsx"
+    )
+    persist_directory = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
 
     print(f"A carregar dados de: {data_path}")
 
@@ -69,6 +71,8 @@ def ingest_data():
 
     # 3. Inicializar o modelo de Embeddings e a Vector Store (ChromaDB)
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+    os.makedirs(persist_directory, exist_ok=True)
 
     Chroma.from_documents(
         documents=documents,

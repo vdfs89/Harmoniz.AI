@@ -172,9 +172,9 @@ Crie ou ajuste o arquivo `.env` com as variáveis abaixo:
 
 ```env
 # ====== CHAVES DE API (OBRIGATÓRIAS) ======
-OPENAI_API_KEY=sk_...          # https://platform.openai.com/api-keys
-GROQ_API_KEY=gsk_...           # https://console.groq.com/keys
-GEMINI_API_KEY=AIza...         # https://aistudio.google.com/app/apikeys
+OPENAI_API_KEY=your_openai_api_key_here   # https://platform.openai.com/api-keys
+GROQ_API_KEY=your_groq_api_key_here       # https://console.groq.com/keys
+GEMINI_API_KEY=your_gemini_api_key_here   # https://aistudio.google.com/app/apikeys
 
 # ====== MODELOS LLM ======
 OPENAI_MODEL=gpt-4o-mini       # Recomendado: custo/qualidade
@@ -464,8 +464,8 @@ docker-compose up --build
 
 ```bash
 docker run -p 8000:8000 \
-  -e OPENAI_API_KEY=sk_... \
-  -e LANGCHAIN_API_KEY=ls_... \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -e LANGCHAIN_API_KEY=your_langsmith_api_key_here \
   harmoniz-api:1.0.0
 ```
 

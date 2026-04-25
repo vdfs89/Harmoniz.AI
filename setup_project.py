@@ -49,6 +49,7 @@ def create_structure():
         f.write("langchain\n")
         f.write("langchain-community\n")
         f.write("langchain-openai\n")
+        f.write("langgraph\n")
         f.write("chromadb\n")
         f.write("python-dotenv\n")
         f.write("ipykernel\n")

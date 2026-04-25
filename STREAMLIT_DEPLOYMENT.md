@@ -20,15 +20,14 @@ Antes de fazer push para GitHub:
    Local: .streamlit/secrets.toml (NÃO commitar ao GitHub!)
    
    Copie o conteúdo de .streamlit/secrets.toml.example:
-   - Substitua "sk_..." pelos seus valores reais
-   - Substitua "gsk_..." pelos seus valores reais
+   - Substitua cada placeholder pelos seus valores reais
    - Etc.
    
    Exemplo completo:
    --------
-   OPENAI_API_KEY = "sk_test_abc123..."
-   GROQ_API_KEY = "gsk_test_xyz789..."
-   GEMINI_API_KEY = "AIzaSyDx_test_..."
+   OPENAI_API_KEY = "your_openai_api_key_here"
+   GROQ_API_KEY = "your_groq_api_key_here"
+   GEMINI_API_KEY = "your_gemini_api_key_here"
    OPENAI_MODEL = "gpt-4o-mini"
    GROQ_MODEL = "llama-3.3-70b-versatile"
    GEMINI_MODEL = "gemini-2.0-flash"
@@ -107,9 +106,9 @@ NÃO use setup_project.py (esse é um script de inicialização que termina logo
    4. Abra a aba "Secrets"
    5. Cole TODO o conteúdo de .streamlit/secrets.toml.example:
    
-      OPENAI_API_KEY = "sk_..."
-      GROQ_API_KEY = "gsk_..."
-      GEMINI_API_KEY = "AIzaSy..."
+      OPENAI_API_KEY = "your_openai_api_key_here"
+      GROQ_API_KEY = "your_groq_api_key_here"
+      GEMINI_API_KEY = "your_gemini_api_key_here"
       OPENAI_MODEL = "gpt-4o-mini"
       ...etc...
    
@@ -282,10 +281,10 @@ Arquivo: .streamlit/secrets.toml
 (NÃO COMMITAR — APENAS LOCAL)
 
 ---
-OPENAI_API_KEY = "sk_test_..."
-GROQ_API_KEY = "gsk_test_..."
-GEMINI_API_KEY = "AIzaSyDx..."
-LANGCHAIN_API_KEY = "ls_test_..."
+OPENAI_API_KEY = "your_openai_api_key_here"
+GROQ_API_KEY = "your_groq_api_key_here"
+GEMINI_API_KEY = "your_gemini_api_key_here"
+LANGCHAIN_API_KEY = "your_langsmith_api_key_here"
 
 VECTOR_DB_PATH = "data/processed/chroma_db"
 LANGCHAIN_TRACING_V2 = "false"  # Ativar se quiser LangSmith em produção

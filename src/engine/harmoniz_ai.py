@@ -1,6 +1,7 @@
 import os
 import re
-import sys
+import shutil
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
@@ -20,6 +21,46 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 load_dotenv()
 persist_directory = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
 chat_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+
+def _load_vector_db_with_recovery(embedding_model: OpenAIEmbeddings) -> Chroma:
+    """Carrega ChromaDB e recria o diretório se detectar schema legado incompatível."""
+    try:
+        return Chroma(
+            persist_directory=persist_directory,
+            embedding_function=embedding_model,
+        )
+    except Exception as exc:
+        if "no such column: collections.topic" not in str(exc):
+            raise
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        legacy_path = f"{persist_directory}_legacy_{timestamp}"
+
+        print(
+            "[WARN] Schema legado do ChromaDB detectado. "
+            f"Movendo base antiga para: {legacy_path}"
+        )
+
+        target_directory = persist_directory
+        try:
+            if os.path.isdir(persist_directory):
+                shutil.move(persist_directory, legacy_path)
+            os.makedirs(persist_directory, exist_ok=True)
+        except PermissionError:
+            # Windows pode manter o sqlite bloqueado por outro processo.
+            target_directory = f"{persist_directory}_recovered_{timestamp}"
+            os.makedirs(target_directory, exist_ok=True)
+            print(
+                "[WARN] Nao foi possivel mover a base antiga (arquivo bloqueado). "
+                f"Usando novo diretorio: {target_directory}"
+            )
+
+        print("[INFO] Criando nova base Chroma vazia e compatível...")
+        return Chroma(
+            persist_directory=target_directory,
+            embedding_function=embedding_model,
+        )
 
 
 def _extract_price_cap(question: str) -> Optional[float]:
@@ -68,13 +109,10 @@ def _format_price(value: Any) -> str:
 # 2. Carregar base vetorial com resiliencia
 try:
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    vector_db = Chroma(
-        persist_directory=persist_directory,
-        embedding_function=embeddings,
-    )
+    vector_db = _load_vector_db_with_recovery(embeddings)
 except Exception as exc:
     print(f"[ERRO] Falha critica ao carregar ChromaDB: {exc}")
-    sys.exit(1)
+    raise
 
 
 # 3. Persona do sommelier com ChatPromptTemplate

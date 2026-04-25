@@ -14,6 +14,7 @@ Resposta: Este Agent é o padrão de produção para conectar múltiplos sistema
 
 import os
 import sys
+import shutil
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -46,18 +47,27 @@ class SimpleConversationMemory:
     def clear(self):
         self.chat_history = []
 
+
 # Import com compatibilidade 0.1.20 e 0.2+
 try:
     from langchain.agents import AgentExecutor, create_openai_tools_agent
 except ImportError:
     # Fallback para LangChain 0.2+ usando langgraph
     try:
-        from langchain_langgraph.prebuilt import create_react_agent
+        from langgraph.prebuilt import create_react_agent
         from langchain.agents import create_openai_tools_agent
-        
+
         # Wrapper para compatibilidade
         class AgentExecutor:
-            def __init__(self, agent, tools, memory=None, verbose=False, handle_parsing_errors=False, max_iterations=5):
+            def __init__(
+                self,
+                agent,
+                tools,
+                memory=None,
+                verbose=False,
+                handle_parsing_errors=False,
+                max_iterations=5,
+            ):
                 self.agent = agent
                 self.tools = tools
                 self.memory = memory
@@ -65,14 +75,17 @@ except ImportError:
                 self.handle_parsing_errors = handle_parsing_errors
                 self.max_iterations = max_iterations
                 self._agent = create_react_agent(agent.llm, tools)
-            
+
             def invoke(self, inputs):
                 return self._agent.invoke(inputs)
     except ImportError as e:
         raise ImportError(
             "AgentExecutor não encontrado. Instale com:\n"
             "pip install -r requirements-pinned.txt\n"
-            "Ou: pip install 'langchain==0.1.20' 'langchain-core==0.1.53'\n"
+            "Ou (stack moderna): pip install 'langchain>=0.2.0' "
+            "'langgraph>=0.2.0'\n"
+            "Ou (stack fixa): pip install 'langchain==0.1.20' "
+            "'langchain-core==0.1.53'\n"
             f"Erro original: {e}"
         )
 
@@ -82,13 +95,51 @@ load_dotenv()
 persist_directory = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
 chat_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
+
+def _load_vector_db_with_recovery(embedding_model: OpenAIEmbeddings) -> Chroma:
+    """Carrega ChromaDB e recria o diretório se detectar schema legado incompatível."""
+    try:
+        return Chroma(
+            persist_directory=persist_directory,
+            embedding_function=embedding_model,
+        )
+    except Exception as exc:
+        if "no such column: collections.topic" not in str(exc):
+            raise
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        legacy_path = f"{persist_directory}_legacy_{timestamp}"
+
+        print(
+            "[WARN] Schema legado do ChromaDB detectado. "
+            f"Movendo base antiga para: {legacy_path}"
+        )
+
+        target_directory = persist_directory
+        try:
+            if os.path.isdir(persist_directory):
+                shutil.move(persist_directory, legacy_path)
+            os.makedirs(persist_directory, exist_ok=True)
+        except PermissionError:
+            # Windows pode manter o sqlite bloqueado por outro processo.
+            target_directory = f"{persist_directory}_recovered_{timestamp}"
+            os.makedirs(target_directory, exist_ok=True)
+            print(
+                "[WARN] Nao foi possivel mover a base antiga (arquivo bloqueado). "
+                f"Usando novo diretorio: {target_directory}"
+            )
+
+        print("[INFO] Criando nova base Chroma vazia e compatível...")
+        return Chroma(
+            persist_directory=target_directory,
+            embedding_function=embedding_model,
+        )
+
+
 # Base vetorial
 try:
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    vector_db = Chroma(
-        persist_directory=persist_directory,
-        embedding_function=embeddings,
-    )
+    vector_db = _load_vector_db_with_recovery(embeddings)
 except Exception as exc:
     print(f"[ERRO] Falha ao carregar ChromaDB: {exc}")
     sys.exit(1)
