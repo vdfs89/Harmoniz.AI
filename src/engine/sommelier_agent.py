@@ -12,6 +12,7 @@ Requisitos da vaga: "Integrar soluções de IA aos sistemas da empresa"
 Resposta: Este Agent é o padrão de produção para conectar múltiplos sistemas.
 """
 
+import importlib
 import os
 import shutil
 from datetime import datetime
@@ -35,16 +36,26 @@ def _resolve_agent_factory() -> Tuple[
     Optional[AgentExecutorClass], Optional[AgentFactory]
 ]:
     try:
-        from langchain.agents import AgentExecutor, create_openai_tools_agent
-
-        return AgentExecutor, create_openai_tools_agent
+        from langchain.agents import AgentExecutor
     except ImportError:
-        try:
-            from langchain.agents import AgentExecutor, create_tool_calling_agent
+        return None, None
 
-            return AgentExecutor, create_tool_calling_agent
-        except ImportError:
-            return None, None
+    factory_candidates = [
+        ("langchain.agents", "create_openai_tools_agent"),
+        ("langchain.agents", "create_tool_calling_agent"),
+        ("langchain.agents.tool_calling.openai", "create_tool_calling_agent"),
+        ("langchain.agents.tool_calling", "create_tool_calling_agent"),
+    ]
+
+    for module_path, attr in factory_candidates:
+        try:
+            module = importlib.import_module(module_path)
+            factory = getattr(module, attr)
+            return AgentExecutor, factory
+        except (ImportError, AttributeError):
+            continue
+
+    return None, None
 
 
 try:

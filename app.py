@@ -1,14 +1,7 @@
 """
 🍷 Harmoniz.AI — Streamlit Web Interface
 ========================================
-
-Interface visual profissional que integra:
-  • Chat RAG (Rápido)
-  • Agent com ferramentas (Completo)
-  • Judge multi-modelo (Qualidade máxima)
-
-Deploy: streamlit run app.py
-Streamlit Cloud: https://harmonizai.streamlit.app/
+Identidade visual fiel à marca: cores, tipografia e estética exatas.
 """
 
 import os
@@ -16,11 +9,12 @@ from typing import Dict, Any
 
 import streamlit as st
 from dotenv import load_dotenv
-from src.engine.ingest import ingest_data
 
-# Carrega variáveis de ambiente
 load_dotenv()
 
+# ─────────────────────────────────────────────────────────────
+# PRÉ-REQUISITO: garante base vetorial antes de qualquer import
+# ─────────────────────────────────────────────────────────────
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
 
 
@@ -32,34 +26,63 @@ def _ensure_vector_db_ready() -> None:
                     return
         except FileNotFoundError:
             pass
-
-    with st.spinner("Primeira vez aqui? A preparar a adega digital..."):
+    with st.spinner("Preparando a adega digital pela primeira vez..."):
         try:
+            from src.engine.ingest import ingest_data
+
             ingest_data()
-        except Exception as exc:
-            st.error(
-                "❌ Erro ao preparar a base vetorial. Confirme WINE_DATA_PATH e API Keys."
-            )
+        except Exception as exc:  # noqa: BLE001
+            st.error("❌ Erro ao preparar a base vetorial. Confirme WINE_DATA_PATH e API Keys.")
             st.exception(exc)
             st.stop()
 
 
 _ensure_vector_db_ready()
 
-
-# Imports dos 3 modos
-try:
+# ─────────────────────────────────────────────────────────────
+# CACHE — carrega recursos pesados uma única vez
+# ─────────────────────────────────────────────────────────────
+@st.cache_resource(show_spinner=False)
+def _load_sommelier():
     from src.engine.harmoniz_ai import perguntar_ao_sommelier
-    from src.engine.sommelier_agent import criar_sommelier_agent
+
+    return perguntar_ao_sommelier
+
+
+@st.cache_resource(show_spinner=False)
+def _load_agent():
+    try:
+        from src.engine.sommelier_agent import criar_sommelier_agent
+
+        return criar_sommelier_agent(), None
+    except Exception as exc:  # noqa: BLE001
+        return None, str(exc)
+
+
+@st.cache_resource(show_spinner=False)
+def _load_judge():
     from src.engine.multi_llm_judge import ask_with_judge
-except ImportError as e:
-    st.error(f"❌ Erro ao carregar módulos: {e}")
-    st.stop()
 
-# ============================================================================
+    return ask_with_judge
+
+
+def _load_engines() -> tuple[Any, Any, Any, Any]:
+    try:
+        sommelier = _load_sommelier()
+        agent_executor, agent_error = _load_agent()
+        judge = _load_judge()
+    except ImportError as exc:  # pragma: no cover - erro fatal
+        st.error(f"❌ Erro ao carregar módulos: {exc}")
+        st.stop()
+
+    return sommelier, agent_executor, agent_error, judge
+
+
+perguntar_ao_sommelier, _agent_executor, _agent_error, ask_with_judge = _load_engines()
+
+# ─────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO DA PÁGINA
-# ============================================================================
-
+# ─────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Harmoniz.AI — Sommelier Digital",
     page_icon="🍷",
@@ -67,495 +90,477 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS + Identidade Visual
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;600&display=swap');
+DESIGN_CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap');
 
-    /* 1. Fundo Geral e Sidebar */
-    .stApp {
-        background-color: #5D101D;
-    }
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; }
 
-    [data-testid="stSidebar"] {
-        background-color: #3D0A13 !important;
-        border-right: 2px solid #FF0033;
-    }
+.stApp {
+    background-color: #1A0008;
+    background-image:
+        radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124, 20, 40, 0.35) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 90% 80%, rgba(201, 168, 112, 0.08) 0%, transparent 60%);
+    font-family: 'Inter', sans-serif;
+}
 
-    /* 2. Tipografia / cores */
-    .harmoniz-brand {
-        font-family: 'Playfair Display', serif;
-        font-weight: 900;
-        line-height: 1;
-    }
+/* ── SIDEBAR ── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #2D0010 0%, #1A0008 100%) !important;
+    border-right: 1px solid rgba(201, 168, 112, 0.25) !important;
+}
+[data-testid="stSidebar"] > div { padding-top: 0 !important; }
 
-    .gold {
-        color: #F1C40F;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    }
+/* ── TYPOGRAPHY OVERRIDE ── */
+h1, h2, h3, h4, h5, h6,
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    font-family: 'Playfair Display', serif !important;
+    color: #C9A870 !important;
+}
+p, span, li, label, div {
+    color: #F2E8D4;
+    font-family: 'Inter', sans-serif;
+}
 
-    .red {
-        color: #FF0033 !important;
-    }
+/* ── LOGO PRINCIPAL ── */
+.hm-hero {
+    text-align: center;
+    padding: 48px 0 32px;
+    position: relative;
+}
+.hm-hero::after {
+    content: '';
+    display: block;
+    width: 120px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #C9A870, transparent);
+    margin: 20px auto 0;
+}
+.hm-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+}
+.hm-logo-harmoniz { color: #C9A870; }
+.hm-logo-dot      { color: #C9A870; opacity: 0.6; }
+.hm-logo-ai       { color: #C41E52; }
+.hm-tagline-main {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: rgba(242, 232, 212, 0.55) !important;
+    margin: 14px 0 4px;
+}
+.hm-tagline-sub {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: rgba(242, 232, 212, 0.65) !important;
+    margin: 0;
+}
 
-    /* 3. Sidebar */
-    .sidebar-title {
-        font-size: 1.8rem;
-        text-align: center;
-        margin-bottom: 5px;
-    }
+/* ── BADGE DE MODO ── */
+.hm-mode-wrap { text-align: center; margin: 0 0 32px; }
+.hm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 18px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+.hm-badge-rag    { border: 1px solid rgba(201,168,112,0.5); color: #C9A870; background: rgba(201,168,112,0.08); }
+.hm-badge-agent  { border: 1px solid rgba(196, 30, 82, 0.5); color: #C41E52; background: rgba(196,30,82,0.08); }
+.hm-badge-judge  { border: 1px solid rgba(242,232,212,0.25); color: #F2E8D4; background: rgba(242,232,212,0.06); }
 
-    [data-testid="stSidebar"] .stMarkdown,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] p {
-        color: #FFFFFF !important;
-        font-family: 'Montserrat', sans-serif;
-    }
+/* ── SIDEBAR LOGO ── */
+.sb-logo {
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid rgba(201, 168, 112, 0.15);
+    margin-bottom: 8px;
+}
+.sb-logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    line-height: 1;
+}
+.sb-logo-sub {
+    font-size: 0.6rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(242,232,212,0.4) !important;
+    margin-top: 4px;
+}
 
-    /* 4. Cabeçalho principal */
-    .main-header {
-        text-align: center;
-        padding: 20px 0;
-    }
+/* ── SIDEBAR LABELS & RADIO ── */
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stRadio label {
+    color: rgba(242, 232, 212, 0.8) !important;
+    font-size: 0.85rem;
+}
+[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p {
+    color: rgba(242, 232, 212, 0.9) !important;
+}
 
-    .main-logo-text {
-        font-size: 5rem;
-        margin-bottom: 0;
-    }
+/* ── CHAT MESSAGES ── */
+[data-testid="stChatMessage"] {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(201, 168, 112, 0.15) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(4px);
+}
+[data-testid="stChatMessage"][data-testid*="user"] {
+    border-color: rgba(196, 30, 82, 0.2) !important;
+}
 
-    .tagline {
-        color: #FF0033 !important;
-        font-family: 'Montserrat', sans-serif;
-        letter-spacing: 4px;
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        margin-top: 10px;
-    }
+/* ── CHAT INPUT ── */
+[data-testid="stChatInput"] {
+    background: rgba(61, 0, 16, 0.6) !important;
+    border: 1px solid rgba(201, 168, 112, 0.3) !important;
+    border-radius: 12px !important;
+    color: #F2E8D4 !important;
+}
+[data-testid="stChatInput"]:focus-within {
+    border-color: rgba(196, 30, 82, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(196, 30, 82, 0.1) !important;
+}
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInput"] input {
+    color: #F2E8D4 !important;
+    background: transparent !important;
+}
 
-    /* 5. Balões de chat */
-    [data-testid="stChatMessage"] {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        border-radius: 20px;
-        border: 1px solid #FF0033;
-    }
+/* ── BUTTONS ── */
+.stButton > button {
+    background: transparent !important;
+    border: 1px solid rgba(201, 168, 112, 0.45) !important;
+    color: #C9A870 !important;
+    border-radius: 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease !important;
+}
+.stButton > button:hover {
+    background: rgba(201, 168, 112, 0.12) !important;
+    border-color: #C9A870 !important;
+}
 
-    .stMarkdown p,
-    .stMarkdown span,
-    .stMarkdown label,
-    p,
-    span,
-    label {
-        color: #FFFFFF !important;
-        font-family: 'Montserrat', sans-serif;
-    }
+/* ── ALERTS / CALLOUTS ── */
+.stSuccess, [data-testid="stAlert"][kind="success"] {
+    background: rgba(201, 168, 112, 0.1) !important;
+    border-left: 3px solid #C9A870 !important;
+    border-radius: 8px !important;
+    color: #C9A870 !important;
+}
+.stInfo, [data-testid="stAlert"][kind="info"] {
+    background: rgba(196, 30, 82, 0.08) !important;
+    border-left: 3px solid rgba(196, 30, 82, 0.5) !important;
+    border-radius: 8px !important;
+    color: rgba(242,232,212,0.85) !important;
+}
+.stError, [data-testid="stAlert"][kind="error"] {
+    background: rgba(196, 30, 82, 0.12) !important;
+    border-left: 3px solid #C41E52 !important;
+    border-radius: 8px !important;
+}
 
-    /* 6. Selo circular */
-    .hero-selo {
-        display: block;
-        margin: 0 auto 15px auto;
-        width: 130px;
-        height: 130px;
-        border-radius: 50%;
-        border: 3px solid #F1C40F;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-        object-fit: cover;
-    }
+/* ── EXPANDER ── */
+details {
+    background: rgba(61, 0, 16, 0.4) !important;
+    border: 1px solid rgba(201, 168, 112, 0.18) !important;
+    border-radius: 10px !important;
+}
+details summary {
+    color: rgba(201, 168, 112, 0.8) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+}
 
-    /* 7. Botões e badges */
-    .stButton>button {
-        background-color: transparent;
-        color: #F1C40F !important;
-        border: 2px solid #F1C40F !important;
-        border-radius: 30px;
-        font-weight: 600;
-        transition: 0.3s;
-    }
+/* ── METRICS ── */
+[data-testid="stMetric"] {
+    background: rgba(61, 0, 16, 0.5) !important;
+    border: 1px solid rgba(201, 168, 112, 0.15) !important;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+}
+[data-testid="stMetric"] label {
+    color: rgba(242, 232, 212, 0.5) !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+}
+[data-testid="stMetricValue"] {
+    color: #C9A870 !important;
+    font-family: 'Playfair Display', serif !important;
+}
 
-    .stButton>button:hover {
-        background-color: #F1C40F;
-        color: #5D101D !important;
-    }
+/* ── DIVIDER ── */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(201,168,112,0.3), transparent) !important;
+    margin: 16px 0 !important;
+}
 
-    .mode-badge-wrapper {
-        text-align: center;
-        margin-bottom: 1rem;
-    }
+/* ── SPINNER ── */
+[data-testid="stSpinner"] {
+    color: #C9A870 !important;
+}
 
-    .mode-badge {
-        display: inline-block;
-        padding: 0.35rem 1.2rem;
-        border-radius: 999px;
-        font-weight: 600;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #1A0008; }
+::-webkit-scrollbar-thumb { background: rgba(201,168,112,0.3); border-radius: 99px; }
+</style>
+"""
 
-    .mode-chat { background-color: rgba(244, 196, 48, 0.15); color: #F4C430; }
-    .mode-agent { background-color: rgba(255, 0, 51, 0.15); color: #FF0033; }
-    .mode-judge { background-color: rgba(255, 255, 255, 0.15); color: #FFFFFF; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown(DESIGN_CSS, unsafe_allow_html=True)
 
-# ============================================================================
-# SIDEBAR — CONFIGURAÇÃO
-# ============================================================================
-
-with st.sidebar:
-    st.markdown(
-        """
-        <div class="harmoniz-brand sidebar-title">
-            <span class="gold">Harmoniz</span><span class="red">.AI</span>
-            <p style="font-size: 0.7rem; color: #FFFFFF; letter-spacing: 2px; font-weight:300; margin-top:5px;">
-                CONFIGURAÇÕES
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.divider()
-
-    # Seleção de modo
-    st.markdown("## Modo de Operação")
-    modo = st.radio(
-        label="Escolha como deseja consultar:",
-        options=["💨 Chat RAG (Rápido)", "🤖 Agente (Completo)", "🏆 Juiz (Multi-LLM)"],
-        help="Cada modo tem diferentes trade-offs de latência vs. qualidade",
-    )
-
-    st.divider()
-
-    # Descrição do modo
-    st.markdown("### ℹ️ Sobre este Modo")
-    if "Chat RAG" in modo:
-        st.markdown("""
-        **⚡ Modo RAG Ultra-Rápido**
-        
-        - Latência: **< 500ms**
-        - Custo: **Mínimo**
-        - Melhor para: Buscas simples, dia-a-dia
-        
-        *Usa Self-Querying + ChromaDB + LCEL*
-        """)
-    elif "Agente" in modo:
-        st.markdown("""
-        **🤖 Modo Agent Inteligente**
-        
-        - Latência: **1-3s**
-        - Custo: **Médio**
-        - Melhor para: Consultas complexas, CRM/ERP
-        
-        *Orquestra 4 ferramentas automaticamente:*
-        - 🔍 Busca no catálogo
-        - 💰 Verifica promoções
-        - 📦 Consulta estoque
-        - 🍴 Harmonização
-        """)
-    else:
-        st.markdown("""
-        **🏆 Modo Judge (Multi-LLM)**
-        
-        - Latência: **3-5s**
-        - Custo: **3x maior (máxima qualidade)**
-        - Melhor para: Consultas críticas, curadoria
-        
-        *Compara 3 modelos em paralelo:*
-        - 🔵 GPT-4o-mini (OpenAI)
-        - 🟢 Llama-3.3 (Groq)
-        - 🟡 Gemini-2.0 (Google)
-        """)
-
-    st.divider()
-
-    # Controles
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🔄 Limpar Histórico", use_container_width=True):
-            st.session_state.messages = []
-            st.rerun()
-
-    with col2:
-        if st.button("📊 Métricas", use_container_width=True):
-            st.session_state.show_metrics = not st.session_state.get(
-                "show_metrics", False
-            )
-            st.rerun()
-
-    st.divider()
-
-    # Info Footer
-    st.markdown("""
-    ---
-    **📍 Harmoniz.AI v1.0**
-    
-    Sommelier Digital para Wine.com.br
-    
-    [🔗 GitHub](https://github.com/vdfs89/Harmoniz.AI) | 
-    [📚 Docs](https://github.com/vdfs89/Harmoniz.AI#readme)
-    """)
-
-# ============================================================================
-# INICIALIZAÇÃO DE ESTADO
-# ============================================================================
-
+# ─────────────────────────────────────────────────────────────
+# ESTADO DA SESSÃO
+# ─────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-if "modo_atual" not in st.session_state:
-    st.session_state.modo_atual = modo
-
 if "show_metrics" not in st.session_state:
     st.session_state.show_metrics = False
 
-if "agent_executor" not in st.session_state:
-    st.session_state.agent_executor = None
-
-if "agent_executor_error" not in st.session_state:
-    st.session_state.agent_executor_error = None
-
-if (
-    "Agente" in modo
-    and st.session_state.agent_executor is None
-    and not st.session_state.agent_executor_error
-):
-    try:
-        st.session_state.agent_executor = criar_sommelier_agent()
-    except ImportError as exc:
-        st.session_state.agent_executor_error = str(exc)
-    except Exception as exc:  # noqa: BLE001
-        st.session_state.agent_executor_error = f"Falha ao iniciar o agent: {exc}"
-
-# ============================================================================
-# HEADER
-# ============================================================================
-
-st.markdown(
-    """
-    <div class="main-header">
-        <img src="https://github.com/vdfs89/Harmoniz.AI/raw/main/image_fe2a58.jpg" class="hero-selo">
-        <h1 class="harmoniz-brand main-logo-text">
-            <span class="gold">Harmoniz</span><span class="red">.AI</span>
-        </h1>
-        <p class="tagline">Sommelier Digital — Inteligência Wine.com.br</p>
+# ─────────────────────────────────────────────────────────────
+# SIDEBAR
+# ─────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(
+        """
+    <div class=\"sb-logo\">
+        <div class=\"sb-logo-text\">
+            <span class=\"hm-logo-harmoniz\">Harmoniz</span><span class=\"hm-logo-ai\">.AI</span>
+        </div>
+        <div class=\"sb-logo-sub\">Sommelier Digital</div>
     </div>
     """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("##### Modo de Operação")
+    modo = st.radio(
+        label="",
+        options=["💨 Chat RAG — Rápido", "🤖 Agente — Inteligente", "🏆 Juiz — Multi-LLM"],
+        help="Cada modo equilibra latência, custo e qualidade de forma diferente.",
+        label_visibility="collapsed",
+    )
+
+    st.markdown("---")
+
+    if "Chat RAG" in modo:
+        st.markdown(
+            """
+        **⚡ Ultra-Rápido**  
+        `< 500ms` · Custo mínimo  
+        Self-Querying + ChromaDB + LCEL
+        """
+        )
+    elif "Agente" in modo:
+        st.markdown(
+            """
+        **🤖 Orquestração Inteligente**  
+        `1 – 3s` · Custo médio  
+        4 ferramentas automáticas:  
+        🔍 Catálogo · 💰 Promoções  
+        📦 Estoque · 🍴 Harmonização
+        """
+        )
+    else:
+        st.markdown(
+            """
+        **🏆 Máxima Qualidade**  
+        `3 – 5s` · Custo 3× maior  
+        GPT-4o-mini × Llama-3.3  
+        × Gemini-2.0 + Juiz árbitro
+        """
+        )
+
+    st.markdown("---")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🗑 Limpar", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+    with col2:
+        if st.button("📊 Stats", use_container_width=True):
+            st.session_state.show_metrics = not st.session_state.show_metrics
+            st.rerun()
+
+    st.markdown("---")
+    st.markdown(
+        """
+    <p style=\"font-size:0.7rem; color:rgba(242,232,212,0.3); text-align:center; letter-spacing:1px;\">
+    HARMONIZ.AI v1.0<br>
+    <a href=\"https://github.com/vdfs89/Harmoniz.AI\" style=\"color:rgba(201,168,112,0.5);\">GitHub</a>
+    </p>
+    """,
+        unsafe_allow_html=True,
+    )
+
+# ─────────────────────────────────────────────────────────────
+# HEADER PRINCIPAL
+# ─────────────────────────────────────────────────────────────
+st.markdown(
+    """
+<div class=\"hm-hero\">
+    <h1 class=\"hm-logo\">
+        <span class=\"hm-logo-harmoniz\">Harmoniz</span><span class=\"hm-logo-dot\">.</span><span class=\"hm-logo-ai\">AI</span>
+    </h1>
+    <p class=\"hm-tagline-main\">Sommelier Digital</p>
+    <p class=\"hm-tagline-sub\">Seu sommelier com inteligência artificial.</p>
+</div>
+""",
     unsafe_allow_html=True,
 )
 
 if "Chat RAG" in modo:
-    badge_html = '<span class="mode-badge mode-chat">💨 RÁPIDO</span>'
+    badge_html = '<span class="hm-badge hm-badge-rag">⚡ Modo Rápido</span>'
 elif "Agente" in modo:
-    badge_html = '<span class="mode-badge mode-agent">🤖 INTELIGENTE</span>'
+    badge_html = '<span class="hm-badge hm-badge-agent">🤖 Modo Agente</span>'
 else:
-    badge_html = '<span class="mode-badge mode-judge">🏆 PREMIUM</span>'
+    badge_html = '<span class="hm-badge hm-badge-judge">🏆 Modo Juiz</span>'
 
-st.markdown(
-    f'<div class="mode-badge-wrapper">{badge_html}</div>',
-    unsafe_allow_html=True,
-)
+st.markdown(f'<div class="hm-mode-wrap">{badge_html}</div>', unsafe_allow_html=True)
 
-st.divider()
-
-# ============================================================================
+# ─────────────────────────────────────────────────────────────
 # HISTÓRICO DE MENSAGENS
-# ============================================================================
-
-# Exibe mensagens anteriores
+# ─────────────────────────────────────────────────────────────
 for message in st.session_state.messages:
-    with st.chat_message(
-        message["role"], avatar="🧑‍💼" if message["role"] == "user" else "🍷"
-    ):
+    avatar = "🍷" if message["role"] == "assistant" else "🧑‍💼"
+    with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
-
-        # Exibe metadata se disponível
-        if "metadata" in message and message["metadata"]:
-            with st.expander("📊 Detalhes"):
-                for chave, valor in message["metadata"].items():
-                    if isinstance(valor, list):
-                        st.write(f"**{chave}:**")
-                        for item in valor:
-                            st.write(f"  • {item}")
+        if message.get("metadata"):
+            with st.expander("📋 Detalhes"):
+                for key, value in message["metadata"].items():
+                    if isinstance(value, list):
+                        st.write(f"**{key}:** {', '.join(str(item) for item in value)}")
                     else:
-                        st.write(f"**{chave}:** {valor}")
+                        st.write(f"**{key}:** {value}")
 
-# ============================================================================
-# INPUT DO USUÁRIO
-# ============================================================================
-
+# ─────────────────────────────────────────────────────────────
+# INPUT & PROCESSAMENTO
+# ─────────────────────────────────────────────────────────────
 prompt = st.chat_input(
-    placeholder="Como posso ajudar o seu paladar hoje? (ex: 'Vinho para churrasco')",
-    key="chat_input",
+    placeholder="Como posso ajudar o seu paladar? (ex: vinho para risoto de cogumelos...)",
 )
 
 if prompt:
-    # Adiciona pergunta ao histórico
-    st.session_state.messages.append(
-        {"role": "user", "content": prompt, "metadata": None}
-    )
-
-    # Exibe pergunta
+    st.session_state.messages.append({"role": "user", "content": prompt, "metadata": None})
     with st.chat_message("user", avatar="🧑‍💼"):
         st.markdown(prompt)
 
-    # Processamento e resposta
     with st.chat_message("assistant", avatar="🍷"):
-        with st.spinner("🔄 Consultando adega..."):
+        with st.spinner("Consultando adega..."):
             try:
-                # ============================================================
-                # MODO 1: CHAT RAG (RÁPIDO)
-                # ============================================================
+                metadata: Dict[str, Any] = {}
+
                 if "Chat RAG" in modo:
                     resultado = perguntar_ao_sommelier(prompt)
                     resposta = resultado["result"]
-
-                    # Exibe resposta
                     st.markdown(resposta)
 
-                    # Metadados
-                    metadata = {}
-
                     if resultado.get("filters_applied"):
-                        st.info(
-                            f"🔍 **Filtros aplicados:** {', '.join(resultado['filters_applied'])}"
-                        )
+                        st.info(f"🔍 Filtros: {' · '.join(resultado['filters_applied'])}")
                         metadata["Filtros"] = resultado["filters_applied"]
 
                     if resultado.get("source_documents"):
                         with st.expander(
-                            f"📚 Fontes ({len(resultado['source_documents'])} documentos)"
+                            f"📚 {len(resultado['source_documents'])} rótulos analisados"
                         ):
                             for doc in resultado["source_documents"]:
-                                nome = doc.metadata.get("nome", "Desconhecido")
+                                nome = doc.metadata.get("nome", "—")
                                 tipo = doc.metadata.get("tipo", "")
-                                preco = doc.metadata.get("preco", "N/A")
                                 pais = doc.metadata.get("pais", "")
-                                st.write(f"**{nome}** ({tipo}) - {pais} - R$ {preco}")
-
+                                preco = doc.metadata.get("preco", "—")
+                                st.write(f"**{nome}** · {tipo} · {pais} · R$ {preco}")
                         metadata["Fontes"] = [
-                            doc.metadata.get("nome")
-                            for doc in resultado["source_documents"]
+                            doc.metadata.get("nome") for doc in resultado["source_documents"]
                         ]
+                    metadata["Modo"] = "Chat RAG"
 
-                # ============================================================
-                # MODO 2: AGENT (COMPLETO)
-                # ============================================================
                 elif "Agente" in modo:
-                    if (
-                        st.session_state.agent_executor is None
-                        and not st.session_state.agent_executor_error
-                    ):
-                        try:
-                            st.session_state.agent_executor = criar_sommelier_agent()
-                        except ImportError as exc:
-                            st.session_state.agent_executor_error = str(exc)
-                        except Exception as exc:  # noqa: BLE001
-                            st.session_state.agent_executor_error = (
-                                f"Falha ao iniciar o agent: {exc}"
-                            )
-
-                    if st.session_state.agent_executor is None:
-                        detalhe = st.session_state.agent_executor_error or (
-                            "Dependências do LangChain Agent indisponíveis."
-                        )
+                    if _agent_executor is None:
                         resposta = (
-                            "❌ O modo Agente não pôde ser carregado neste deploy.\n\n"
-                            f"Detalhe técnico: {detalhe}\n"
-                            "Verifique se os pacotes `langchain`, `langchain-chroma`,\n"
-                            "`google-generativeai` e o `VECTOR_DB_PATH` estão corretos."
+                            "❌ O Modo Agente não pôde ser carregado.\n\n"
+                            f"Detalhe: `{_agent_error}`\n\n"
+                            "Verifique as dependências do LangChain e o `VECTOR_DB_PATH`."
                         )
                         st.error(resposta)
-                        metadata = {
-                            "Modo": "Agent",
-                            "Status": "Indisponível",
-                            "Detalhe": detalhe,
-                        }
                     else:
-                        agent = st.session_state.agent_executor
-                        resultado = agent.invoke({"input": prompt})
+                        resultado = _agent_executor.invoke({"input": prompt})
                         resposta = resultado["output"]
-
-                        # Exibe resposta
                         st.markdown(resposta)
+                    metadata["Modo"] = "Agente"
+                    metadata["Ferramentas"] = "Busca · Promoção · Estoque · Harmonização"
 
-                        # Metadados
-                        metadata = {
-                            "Modo": "Agent",
-                            "Ferramentas": "🔍 Busca, 💰 Promoção, 📦 Estoque, 🍴 Harmonização",
-                        }
-
-                # ============================================================
-                # MODO 3: JUDGE (MULTI-LLM)
-                # ============================================================
-                else:  # Judge
+                else:
                     resultado = ask_with_judge(prompt)
                     resposta = resultado.get("answer", resultado.get("output", ""))
-
-                    # Exibe resposta
                     st.markdown(resposta)
 
-                    # Informação do vencedor
-                    winner = resultado.get("winner", "Unknown")
+                    winner = resultado.get("winner", "—")
                     reason = resultado.get("reason", "")
+                    st.success(f"🏆 Vencedor: **{winner}**")
+                    if reason:
+                        st.info(f"_{reason}_")
 
-                    st.success(f"🏆 **Modelo vencedor:** {winner}")
-                    st.info(f"**Motivo:** {reason}")
-
-                    # Scores dos modelos
                     if resultado.get("all_answers"):
                         with st.expander("📊 Comparação de modelos"):
                             cols = st.columns(len(resultado["all_answers"]))
-                            for col, (model_name, response) in zip(
+                            for col, (model_name, resposta_modelo) in zip(
                                 cols, resultado["all_answers"].items()
                             ):
                                 with col:
-                                    st.write(f"**{model_name}**")
-                                    st.write(response[:150] + "...")
+                                    st.markdown(f"**{model_name}**")
+                                    st.caption(resposta_modelo[:200] + "…")
 
-                    # Metadados
                     metadata = {
                         "Vencedor": winner,
                         "Razão": reason,
                         "Modelos": list(resultado.get("all_answers", {}).keys()),
                     }
 
-                # Adiciona resposta ao histórico
                 st.session_state.messages.append(
                     {"role": "assistant", "content": resposta, "metadata": metadata}
                 )
 
-            except Exception as e:
-                st.error(f"❌ Erro ao processar: {str(e)}")
-                st.info(
-                    "**Dica:** Certifique-se que:\n"
-                    "1. .env está configurado com as API keys\n"
-                    "2. ChromaDB foi carregado (execute ingest.py)\n"
-                    "3. O modo selecionado tem todos os modelos configurados"
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"❌ {exc}")
+                st.caption(
+                    "Certifique-se de que o `.env` tem as API keys e o ChromaDB foi gerado "
+                    "(`python src/engine/ingest.py`)."
                 )
 
-# ============================================================================
-# FOOTER COM MÉTRICAS (Opcional)
-# ============================================================================
-
-if st.session_state.get("show_metrics") and st.session_state.messages:
-    st.divider()
-    st.markdown("### 📊 Estatísticas da Conversa")
+# ─────────────────────────────────────────────────────────────
+# STATS (opcional)
+# ─────────────────────────────────────────────────────────────
+if st.session_state.show_metrics and st.session_state.messages:
+    st.markdown("---")
+    st.markdown("#### 📊 Estatísticas da Conversa")
+    total_msgs = len(st.session_state.messages)
+    user_msgs = sum(1 for msg in st.session_state.messages if msg["role"] == "user")
+    assist_msgs = total_msgs - user_msgs
+    modo_curto = "RAG" if "Chat RAG" in modo else ("Agente" if "Agente" in modo else "Juiz")
 
     col1, col2, col3, col4 = st.columns(4)
-
-    total_msgs = len(st.session_state.messages)
-    user_msgs = sum(1 for m in st.session_state.messages if m["role"] == "user")
-    assistant_msgs = total_msgs - user_msgs
-
-    with col1:
-        st.metric("Total de mensagens", total_msgs)
-    with col2:
-        st.metric("Perguntas", user_msgs)
-    with col3:
-        st.metric("Respostas", assistant_msgs)
-    with col4:
-        st.metric(
-            "Modo atual",
-            "RAG" if "Chat RAG" in modo else ("Agent" if "Agente" in modo else "Judge"),
-        )
+    col1.metric("Total", total_msgs)
+    col2.metric("Perguntas", user_msgs)
+    col3.metric("Respostas", assist_msgs)
+    col4.metric("Modo", modo_curto)
