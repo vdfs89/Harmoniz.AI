@@ -22,6 +22,7 @@ from src.engine.ingest import ingest_data
 load_dotenv()
 
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "data/processed/chroma_db")
+HERO_IMAGE_PATH = "img/Gemini_Generated_Image_a7l9bqa7l9bqa7l9.png"
 
 
 def _ensure_vector_db_ready() -> None:
@@ -45,6 +46,18 @@ def _ensure_vector_db_ready() -> None:
 
 
 _ensure_vector_db_ready()
+
+
+def _render_hero_banner() -> None:
+    if not os.path.exists(HERO_IMAGE_PATH):
+        return
+
+    st.image(
+        HERO_IMAGE_PATH,
+        caption="Harmoniz.AI — Adega Generativa",
+        use_column_width=True,
+    )
+
 
 # Imports dos 3 modos
 try:
@@ -220,6 +233,8 @@ with col2:
             '<span class="mode-badge mode-judge">🏆 PREMIUM</span>',
             unsafe_allow_html=True,
         )
+
+_render_hero_banner()
 
 st.divider()
 

@@ -1,5 +1,7 @@
 ﻿![Harmoniz.AI](img/Gemini_Generated_Image_xazn0vxazn0vxazn.png)
 
+![Harmoniz.AI Banner](img/Gemini_Generated_Image_a7l9bqa7l9bqa7l9.png)
+
 # Harmoniz.AI
 
 Sommelier digital com arquitetura RAG para recomendacao de vinhos com base em catalogo real.
