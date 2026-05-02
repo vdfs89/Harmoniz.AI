@@ -1,4 +1,4 @@
-﻿![Harmoniz.AI](img/ChatGPT Image 24 de abr. de 2026, 21_52_30.png)
+﻿![Harmoniz.AI](img/ChatGPT%20Image%2024%20de%20abr.%20de%202026,%2021_52_30.png)
 
 # Harmoniz.AI
 
