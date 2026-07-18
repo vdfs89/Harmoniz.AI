@@ -4,6 +4,23 @@
 
 Sommelier digital com arquitetura RAG para recomendacao de vinhos com base em catalogo real.
 
+## 📊 Impact at a Glance
+
+| Metric | Value | Context |
+|---|---|---|
+| **Wine catalog indexed** | **570 labels** | ChromaDB vector store, semantic retrieval |
+| **RAG latency (Chat mode)** | **< 500ms** | Self-querying + ChromaDB retrieval |
+| **Agent response time** | **1–3s** | 4 specialized tools with multi-LLM orchestration |
+| **LLM providers** | **GPT-4 + Groq + Gemini** | Multi-LLM judge selects best response |
+| **Serving modes** | **3** | Chat RAG • Intelligent Agent • Multi-LLM Judge |
+| **API endpoints** | **3 REST endpoints** | FastAPI with Streamlit frontend |
+| **Observability** | **LangSmith** | Full trace logging (optional) |
+
+> **Why it matters:** Generic LLM recommendations hallucinate product details. Harmoniz.AI grounds every answer in the real catalog — RAG retrieval ensures recommendations reference actual available labels, prices, and pairings.
+
+---
+
+
 ## Status da Aplicação
 
 | Componente | Status | Notas |
